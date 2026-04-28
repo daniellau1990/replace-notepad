@@ -1,0 +1,147 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+A lightweight Windows notepad replacement built with **Python 3.9 + PyQt6 + QScintilla**. Features: auto-save (30s debounce), line numbers, bold formatting, Markdown syntax highlighting and live preview, multi-tab, font zoom.
+
+## Commands
+
+```bash
+# Setup virtual environment
+cd D:\AIAGENT应用\replace_txt\notepad
+python -m venv .venv
+.venv\Scripts\activate
+pip install PyQt6 PyQt6-QScintilla markdown
+
+# Run the app
+python main.py
+
+# Freeze dependencies
+pip freeze > requirements.txt
+```
+
+## Architecture
+
+```
+notepad/
+├── main.py              # Entry point, creates QApplication
+├── src/
+│   ├── app.py           # QMainWindow — menu bar, toolbar, status bar, assembles all modules
+│   ├── editor.py        # QsciScintilla subclass — line numbers, MD lexer, bold, zoom
+│   ├── tab_manager.py   # QTabWidget — manages open tabs, Ctrl+T / Ctrl+W
+│   ├── md_preview.py    # QSplitter — live Markdown preview via QTextBrowser
+│   ├── autosave.py      # QTimer — 30s debounce, saves directly to file (no .tmp)
+│   ├── file_handler.py  # File I/O, UTF-8/GBK detection, recent files
+│   ├── find_replace.py  # Find/replace bar
+│   └── settings.py      # QSettings persistence — font, theme, auto-save interval
+└── resources/           # Icons (optional)
+```
+
+## Key Design Decisions
+
+- **Auto-save (Obsidian-style)**: Save directly to the original file after 30s of inactivity. No temp files, no backup directory. Unnamed new files auto-save to `%USERPROFILE%\Documents\Notes\` with filename derived from first line of text.
+- **QScintilla**: line numbers, Markdown lexer, bracket matching, auto-indent, undo/redo enabled. Code folding, autocomplete, breakpoint margin disabled.
+- **Markdown preview**: `QSplitter` side-by-side. Python `markdown` library → HTML → `QTextBrowser`. 300ms debounce. `Ctrl+P` toggle. Hidden for `.txt` files.
+- **Bold**: `Ctrl+B` wraps selected text with `**` delimiters (or removes them if present).
+- **Font zoom**: `Ctrl+Scroll` → `zoomIn()`/`zoomOut()`.
+- **Default directory**: `Documents\Notes\`, auto-created on first launch.
+
+---
+
+## Behavioral Guidelines
+
+Reduce common LLM coding mistakes. Bias toward caution over speed. For trivial tasks, use judgment.
+
+### 1. Think Before Coding
+
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them — don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+### 2. Simplicity First
+
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+
+### 3. Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- Remove only imports/variables/functions that YOUR changes made unused.
+
+### 4. Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+
+For multi-step tasks, state a brief plan:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
+
+---
+
+## 调试方法论
+
+核心原则: **先观测再推断** — 不要先入为主，直接写测试验证。
+
+1. 先观测再推断 — 事实第一，理论第二
+2. 反转假设 — 问什么存活了，而不是什么坏了
+3. 隔离理解 — 最小测试揭示最大真相
+4. 对比学习 — A/B 测试是调试的最佳伙伴
+5. 相信测试，不信文档 — 验证一切
+6. 找反例 — 找"不正常"的行为，往往藏着答案
+7. 记录根因 — 这样不会重蹈覆辙
+
+### 七步框架
+
+| 步骤 | 核心问题 |
+| --- | --- |
+| Step 1: 精确界定问题 | 期望行为 vs 实际行为是什么？ |
+| Step 2: 反转假设 | 什么没坏？什么存活了？为什么？ |
+| Step 3: 隔离测试 | 最小化复现，排除干扰 |
+| Step 4: 对比实验：A vs B | 差异即原因 |
+| Step 5: 验证文档 | 文档描述契约，不等于实现行为 |
+| Step 6: UX 验证 | 用户实际看到什么？ |
+| Step 7: 记录根因 | 记录机制，不只是记录修复 |
+
+### 常见陷阱
+
+| 陷阱 | 表现 | 正确做法 |
+| --- | --- | --- |
+| 过早锁定假设 | 前5分钟形成假设，花好几天证明它对 | 把假设明确写下来，主动找反对证据 |
+| 忽视部分成功 | 修复症状，忽略已经工作的部分 | 研究"为什么这部分有效" |
+| 架构隧道视野 | 架构正确但问题依旧，不停重构 | 停止编码，写隔离测试 |
+| 只测正常路径 | 验证修复有效，不验证是否破坏其他 | 验证修复 + 回归测试 |
+
+---
+
+## 重要指令
+
+- 在任何情况下，都不要主动调用或执行 `/opsx:apply` 命令
+
+## 工作流程
+
+- 制定计划保存到 `docs\plans\`，文件名含日期和项目目标
+- 按 TDD 范式测试执行，按成功率排名顺序尝试，成功即停止
+- 涉及文件变更时新建版本，不覆盖原文件，更新 Version.md
+- 保留所有历史版本文件，不删除，便于回滚
+- 提交修改到本地 git
