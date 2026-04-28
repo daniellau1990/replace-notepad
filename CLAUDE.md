@@ -15,8 +15,8 @@ python -m venv .venv
 .venv\Scripts\activate
 pip install PyQt6 PyQt6-QScintilla markdown
 
-# Run the app
-python main.py
+# Run the app (one-liner, CMD)
+.venv\Scripts\activate.bat && python main.py
 
 # Freeze dependencies
 pip freeze > requirements.txt

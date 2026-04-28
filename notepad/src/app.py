@@ -1,5 +1,6 @@
 import os
 
+from PyQt6.Qsci import QsciScintilla
 from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, QStatusBar, QSplitter
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QAction, QKeySequence
@@ -212,9 +213,7 @@ class MainWindow(QMainWindow):
         if not editor or not text:
             return
         flags = 0
-        if case_sensitive:
-            from PyQt6.Qsci import QsciScintilla
-            flags = QsciScintilla.ScientificFindFlag.SCFIND_MATCHCASE
+        flags = QsciScintilla.SCFIND_MATCHCASE if case_sensitive else 0
         editor.findFirst(text, False, False, False, True, flags)
 
     def _on_replace(self, find: str, replace: str, case_sensitive: bool):
@@ -229,10 +228,9 @@ class MainWindow(QMainWindow):
         editor = self._tab_manager.current_editor()
         if not editor:
             return
-        editor.positionFromLineIndex(0, 0)
-        editor.findFirst(find, False, False, False, True)
+        editor.setCursorPosition(0, 0)
         count = 0
-        while editor.findNext():
+        while editor.findFirst(find, False, False, False, True):
             editor.replaceSelectedText(replace)
             count += 1
         self._status.showMessage(f"已替换 {count} 处", 3000)

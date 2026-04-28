@@ -15,7 +15,7 @@ class Editor(QsciScintilla):
 
     def _setup_margins(self):
         # Line number margin
-        self.setMarginType(0, QsciScintilla.MarginStyle.NumberMargin)
+        self.setMarginType(0, QsciScintilla.MarginType.NumberMargin)
         self.setMarginWidth(0, 40)
         self.setMarginsForegroundColor(QColor(128, 128, 128))
         self.setMarginsBackgroundColor(QColor(240, 240, 240))
@@ -53,11 +53,11 @@ class Editor(QsciScintilla):
             new_text = selected[2:-2]
         else:
             new_text = f"**{selected}**"
+        start_pos = self.positionFromLineIndex(line_from, index_from)
         self.replaceSelectedText(new_text)
-        # Keep selection on the modified text
-        new_len = len(new_text)
-        pos = self.positionFromLineIndex(line_from, index_from)
-        self.setSelection(pos, pos + new_len)
+        new_end_pos = start_pos + len(new_text)
+        end_line, end_index = self.lineIndexFromPosition(new_end_pos)
+        self.setSelection(line_from, index_from, end_line, end_index)
 
     def wheelEvent(self, event):
         """Ctrl+Scroll to zoom in/out."""

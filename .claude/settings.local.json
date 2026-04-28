@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(pip config:*)",
+      "Bash(python -c \"import PyQt6\")",
+      "Bash(python -c \"import PyQt5\")",
+      "Bash(python -c \"import tkinter\")",
+      "Bash(where python:*)",
+      "Bash(python -c \"import sys; print\\(sys.executable\\)\")",
+      "Bash(pip --version)",
+      "Bash(conda --version)",
+      "WebSearch",
+      "Bash(find D:/AIAGENT应用/replace_txt -maxdepth 5 -not -path */.git/* -not -path */node_modules/* -not -path */__pycache__/* -not -path */.venv/*)",
+      "Bash(git -C \"D:/AIAGENT应用/replace_txt\" log --oneline --all)",
+      "Bash(git -C \"D:/AIAGENT应用/replace_txt\" status)",
+      "Bash(ls -lt \"C:/Users/surface/.claude/projects/D--AIAGENT---replace-txt/\"*.jsonl)",
+      "Bash(python3:*)",
+      "Bash(pip3 --version)",
+      "Bash(python -m venv .venv)",
+      "Bash(source .venv/Scripts/activate)",
+      "Bash(echo $HTTP_PROXY)",
+      "Bash(echo $HTTPS_PROXY)",
+      "Bash(echo $http_proxy)",
+      "Bash(echo $https_proxy)",
+      "Bash(unset HTTP_PROXY)",
+      "Bash(unset HTTPS_PROXY)",
+      "Bash(unset http_proxy)",
+      "Bash(unset https_proxy)",
+      "Bash(export http_proxy=http://127.0.0.1:10808)",
+      "Bash(export https_proxy=http://127.0.0.1:10808)",
+      "Bash(export HTTP_PROXY=http://127.0.0.1:10808)",
+      "Bash(export HTTPS_PROXY=http://127.0.0.1:10808)",
+      "Bash(python -c \":*)",
+      "Bash(cmd.exe /c \".venv\\\\Scripts\\\\activate.bat && python main.py\")",
+      "Bash(echo \"EXIT CODE: $?\")"
+    ]
+  }
+}
