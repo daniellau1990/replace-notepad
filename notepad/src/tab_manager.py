@@ -1,5 +1,5 @@
 import os
-from PyQt6.QtWidgets import QTabWidget
+from PyQt6.QtWidgets import QTabWidget, QLineEdit
 from PyQt6.QtCore import Qt, pyqtSignal
 
 from src.editor import Editor
@@ -8,7 +8,7 @@ from src.editor import Editor
 class TabManager(QTabWidget):
     """Manages open editor tabs. Ctrl+T new, Ctrl+W close."""
 
-    rename_requested = pyqtSignal(object)  # Editor instance
+    rename_requested = pyqtSignal(object, str)  # Editor instance, new name
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -155,8 +155,27 @@ class TabManager(QTabWidget):
 
     def _on_double_click(self, idx: int):
         editor = self.widget(idx)
-        if editor:
-            self.rename_requested.emit(editor)
+        if not editor:
+            return
+
+        tab_bar = self.tabBar()
+        tab_rect = tab_bar.tabRect(idx)
+
+        line_edit = QLineEdit(tab_bar)
+        current_text = self.tabText(idx).replace(" ●", "")
+        line_edit.setText(current_text)
+        line_edit.selectAll()
+        line_edit.setGeometry(tab_rect.adjusted(2, 2, -2, -2))
+        line_edit.show()
+        line_edit.setFocus()
+
+        def finish():
+            new_text = line_edit.text().strip()
+            line_edit.deleteLater()
+            if new_text and new_text != current_text:
+                self.rename_requested.emit(editor, new_text)
+
+        line_edit.editingFinished.connect(finish)
 
     def _on_tab_changed(self, idx: int):
         if idx >= 0:

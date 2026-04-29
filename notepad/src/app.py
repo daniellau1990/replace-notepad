@@ -1,7 +1,7 @@
 import os
 
 from PyQt6.Qsci import QsciScintilla
-from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, QStatusBar, QSplitter, QInputDialog
+from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, QStatusBar, QSplitter
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QAction, QKeySequence
 
@@ -315,31 +315,26 @@ class MainWindow(QMainWindow):
 
     # --- Double-click rename ---
 
-    def _on_rename_requested(self, editor):
+    def _on_rename_requested(self, editor, new_text):
         eid = id(editor)
         path = self._tab_manager.path_for(eid)
 
         if path:
             old_dir = os.path.dirname(path)
-            old_basename = os.path.splitext(os.path.basename(path))[0]
-            new_name, ok = QInputDialog.getText(
-                self, "重命名文件", "文件名:",
-                text=old_basename
-            )
-            if ok and new_name:
-                ext = os.path.splitext(path)[1]
-                new_path = os.path.join(old_dir, new_name + ext)
-                try:
-                    os.rename(path, new_path)
-                    self._tab_manager._file_paths[eid] = new_path
-                    self._tab_manager._update_tab_title(editor)
-                    self._update_title()
-                    self._status.showMessage(f"已重命名为 {os.path.basename(new_path)}", 3000)
-                except OSError as e:
-                    QMessageBox.warning(self, "重命名失败", str(e))
+            ext = os.path.splitext(path)[1]
+            new_path = os.path.join(old_dir, new_text + ext)
+            try:
+                os.rename(path, new_path)
+                self._tab_manager._file_paths[eid] = new_path
+                self._tab_manager._update_tab_title(editor)
+                self._update_title()
+                self._status.showMessage(f"已重命名为 {os.path.basename(new_path)}", 3000)
+            except OSError as e:
+                QMessageBox.warning(self, "重命名失败", str(e))
         else:
-            # Unnamed file — show save dialog
-            self._show_save_dialog()
+            # Unnamed file — just update default name
+            self._tab_manager._default_names[eid] = new_text
+            self._tab_manager._update_tab_title(editor)
 
     # --- UI updates ---
 
