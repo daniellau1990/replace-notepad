@@ -33,7 +33,19 @@
       "Bash(export HTTPS_PROXY=http://127.0.0.1:10808)",
       "Bash(python -c \":*)",
       "Bash(cmd.exe /c \".venv\\\\Scripts\\\\activate.bat && python main.py\")",
-      "Bash(echo \"EXIT CODE: $?\")"
+      "Bash(echo \"EXIT CODE: $?\")",
+      "Bash(cmd.exe /c \"start cmd /k D:\\\\AIAGENT应用\\\\replace_txt\\\\notepad\\\\.venv\\\\Scripts\\\\activate.bat && python D:\\\\AIAGENT应用\\\\replace_txt\\\\notepad\\\\main.py\"\")",
+      "Bash(cmd.exe /c \"start cmd /k \\\\\"D:\\\\AIAGENT应用\\\\replace_txt\\\\notepad\\\\.venv\\\\Scripts\\\\activate.bat && python D:\\\\AIAGENT应用\\\\replace_txt\\\\notepad\\\\main.py\\\\\"\")",
+      "Bash(cmd.exe /c start \"\" \"D:\\\\AIAGENT应用\\\\replace_txt\\\\notepad\\\\run.bat\")",
+      "Bash(cmd.exe //c start \"LiteNotepad\" \"D:\\\\AIAGENT应用\\\\replace_txt\\\\notepad\\\\run_app.bat\")",
+      "Bash(tasklist)",
+      "Bash(cmd.exe //c \"dir /x D:\\\\AIAGENT~1\\\\replace_txt\\\\notepad\\\\main.py\" 2>&1)",
+      "Bash(cmd.exe //c start \"LiteNotepad\" /wait /min python \"D:\\\\AIAGENT应用\\\\replace_txt\\\\notepad\\\\main.py\" 2>&1)",
+      "Bash(claude -r)",
+      "Read(//c/Users/surface/**)",
+      "Bash(ls -lh C:Userssurface.claudeprojectsD--AIAGENT---replace-txt*.jsonl)",
+      "Bash(ls -lh \"C:\\\\Users\\\\surface\\\\.claude\\\\projects\\\\D--AIAGENT---replace-txt\"/*.jsonl)",
+      "Bash(python:*)"
     ]
   }
 }

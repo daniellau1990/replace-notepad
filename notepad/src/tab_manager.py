@@ -1,5 +1,6 @@
+import os
 from PyQt6.QtWidgets import QTabWidget
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 
 from src.editor import Editor
 
@@ -7,15 +8,22 @@ from src.editor import Editor
 class TabManager(QTabWidget):
     """Manages open editor tabs. Ctrl+T new, Ctrl+W close."""
 
+    rename_requested = pyqtSignal(object)  # Editor instance
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTabsClosable(True)
         self.setMovable(True)
         self.setDocumentMode(True)
-        self.tabCloseRequested.connect(self._close_tab)
         self.currentChanged.connect(self._on_tab_changed)
+        self.tabBar().tabBarDoubleClicked.connect(self._on_double_click)
 
-        self._file_paths = {}  # editor_id -> path or None
+        self._file_paths = {}       # id(editor) -> str | None
+        self._dirty_editors = set()  # set of id(editor)
+        self._unnamed_counter = 0
+        self._default_names = {}     # id(editor) -> str
+
+    # --- Tab creation ---
 
     def add_new_tab(self, content: str = "", path: str = None) -> Editor:
         editor = Editor()
@@ -24,11 +32,70 @@ class TabManager(QTabWidget):
         editor_id = id(editor)
         self._file_paths[editor_id] = path
 
-        title = self._tab_title(path)
+        if path:
+            title = os.path.basename(path)
+            self._default_names[editor_id] = title
+        else:
+            title = self._generate_unnamed_name()
+            self._default_names[editor_id] = title
+
         self.addTab(editor, title)
         self.setCurrentWidget(editor)
-        editor.textChanged.connect(self._mark_tab_changed)
+
+        editor.textChanged.connect(lambda: self._on_editor_changed(editor))
         return editor
+
+    def _generate_unnamed_name(self) -> str:
+        self._unnamed_counter += 1
+        return f"未命名文件{self._unnamed_counter}"
+
+    # --- Editor change tracking ---
+
+    def _on_editor_changed(self, editor):
+        eid = id(editor)
+        self._dirty_editors.add(eid)
+        self._update_tab_title(editor)
+
+    def _first_line(self, editor) -> str:
+        text = editor.text()
+        first = text.split("\n", 1)[0].strip()
+        first = first.lstrip("#").strip()
+        return first
+
+    # --- Tab title ---
+
+    def _update_tab_title(self, editor):
+        eid = id(editor)
+        idx = self.indexOf(editor)
+        if idx < 0:
+            return
+        path = self._file_paths.get(eid)
+        if path:
+            title = os.path.basename(path)
+        else:
+            first = self._first_line(editor)
+            title = first if first else self._default_names.get(eid, "未命名")
+        if eid in self._dirty_editors:
+            title += " ●"
+        self.setTabText(idx, title)
+
+    def filename_candidate(self, editor) -> str:
+        """Filename suggestion from first line or default name."""
+        first = self._first_line(editor)
+        return first if first else self._default_names.get(id(editor), "未命名")
+
+    # --- Dirty state ---
+
+    def mark_dirty(self, editor_id: int):
+        self._dirty_editors.add(editor_id)
+
+    def mark_clean(self, editor_id: int):
+        self._dirty_editors.discard(editor_id)
+
+    def is_dirty(self, editor_id: int) -> bool:
+        return editor_id in self._dirty_editors
+
+    # --- Query ---
 
     def current_editor(self) -> Editor:
         return self.currentWidget()
@@ -43,35 +110,56 @@ class TabManager(QTabWidget):
         editor = self.current_editor()
         if editor:
             self._file_paths[id(editor)] = path
-            self.setTabText(self.currentIndex(), self._tab_title(path))
+            self._update_tab_title(editor)
 
-    def _tab_title(self, path: str) -> str:
-        if path:
-            import os
-            return os.path.basename(path)
-        return "未命名"
+    def path_for(self, editor_id: int):  # type: -> str|None
+        return self._file_paths.get(editor_id)
 
-    def _mark_tab_changed(self):
-        editor = self.sender()
-        if editor and editor == self.current_editor():
-            idx = self.currentIndex()
-            title = self.tabText(idx)
-            if not title.endswith(" ●"):
-                self.setTabText(idx, title + " ●")
+    def all_editors(self) -> list:
+        result = []
+        for i in range(self.count()):
+            editor = self.widget(i)
+            if editor:
+                eid = id(editor)
+                result.append((eid, editor, self._file_paths.get(eid), eid in self._dirty_editors))
+        return result
 
-    def _close_tab(self, idx: int):
+    # --- First line title ---
+
+    def ensure_first_line_title(self, editor):
+        """If the file has a path and first line is not a heading, insert # filename."""
+        eid = id(editor)
+        path = self._file_paths.get(eid)
+        if not path:
+            return
+        text = editor.text()
+        first = text.split("\n", 1)[0].strip() if text else ""
+        if first.startswith("# "):
+            return
+        basename = os.path.splitext(os.path.basename(path))[0]
+        heading = f"# {basename}\n\n"
+        editor.setText(heading + text)
+
+    # --- Close / Remove ---
+
+    def remove_tab(self, idx: int):
         widget = self.widget(idx)
         if widget:
-            editor_id = id(widget)
-            self._file_paths.pop(editor_id, None)
+            eid = id(widget)
+            self._file_paths.pop(eid, None)
+            self._dirty_editors.discard(eid)
+            self._default_names.pop(eid, None)
             self.removeTab(idx)
+
+    # --- Signals ---
+
+    def _on_double_click(self, idx: int):
+        editor = self.widget(idx)
+        if editor:
+            self.rename_requested.emit(editor)
 
     def _on_tab_changed(self, idx: int):
         if idx >= 0:
             editor = self.widget(idx)
             if editor:
                 editor.setFocus()
-
-    def close_all(self):
-        while self.count():
-            self._close_tab(0)

@@ -1,7 +1,7 @@
 import os
 
 from PyQt6.Qsci import QsciScintilla
-from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, QStatusBar, QSplitter
+from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, QStatusBar, QSplitter, QInputDialog
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QAction, QKeySequence
 
@@ -52,14 +52,14 @@ class MainWindow(QMainWindow):
             get_path=lambda: self._tab_manager.current_path(),
             set_path=lambda p: self._tab_manager.set_current_path(p),
             status_callback=lambda msg: self._status.showMessage(msg, 3000),
+            tab_manager=self._tab_manager,
             interval_ms=self._settings.auto_save_interval,
         )
 
-        # Track which editors already have textChanged connected
-        self._connected_editors = set()
-
-        # Tab change -> update preview + title
+        # Tab signals
         self._tab_manager.currentChanged.connect(self._on_tab_changed)
+        self._tab_manager.tabCloseRequested.connect(self._close_tab)
+        self._tab_manager.rename_requested.connect(self._on_rename_requested)
 
         # Menu bar
         self._build_menu()
@@ -80,15 +80,15 @@ class MainWindow(QMainWindow):
     # --- Tab management ---
 
     def _new_tab(self, content="", path=None):
-        """Create a new editor tab and connect its signals once."""
         editor = self._tab_manager.add_new_tab(content, path)
-        eid = id(editor)
-        if eid not in self._connected_editors:
-            editor.textChanged.connect(self._autosave.mark_dirty)
-            editor.textChanged.connect(self._md_preview.schedule_render)
-            self._connected_editors.add(eid)
         self._md_preview.set_editor(editor)
         self._update_title()
+        # Connect preview (ensure no duplicate connections)
+        try:
+            editor.textChanged.disconnect(self._md_preview.schedule_render)
+        except TypeError:
+            pass
+        editor.textChanged.connect(self._md_preview.schedule_render)
         return editor
 
     def _on_tab_changed(self, idx: int):
@@ -170,7 +170,8 @@ class MainWindow(QMainWindow):
         for path in paths:
             try:
                 content = self._file_handler.read_file(path)
-                self._new_tab(content, path)
+                editor = self._new_tab(content, path)
+                self._tab_manager.ensure_first_line_title(editor)
                 self._file_handler.add_recent(path)
             except Exception as e:
                 QMessageBox.warning(self, "打开失败", str(e))
@@ -180,16 +181,36 @@ class MainWindow(QMainWindow):
         if path:
             self._autosave.save_now()
         else:
-            self._save_as_file()
+            self._show_save_dialog()
 
-    def _save_as_file(self):
+    def _show_save_dialog(self):
+        editor = self._tab_manager.current_editor()
+        if not editor:
+            return
+        default_name = self._tab_manager.filename_candidate(editor)
         path, _ = QFileDialog.getSaveFileName(
-            self, "另存为", "",
+            self, "保存", default_name,
             "Markdown (*.md);;文本文件 (*.txt);;所有文件 (*)"
         )
         if path:
+            content = editor.text()
             self._tab_manager.set_current_path(path)
-            self._autosave.save_now()
+            self._autosave.save_to_path(content, path)
+            self._file_handler.add_recent(path)
+
+    def _save_as_file(self):
+        editor = self._tab_manager.current_editor()
+        if not editor:
+            return
+        default_name = self._tab_manager.filename_candidate(editor)
+        path, _ = QFileDialog.getSaveFileName(
+            self, "另存为", default_name,
+            "Markdown (*.md);;文本文件 (*.txt);;所有文件 (*)"
+        )
+        if path:
+            content = editor.text()
+            self._tab_manager.set_current_path(path)
+            self._autosave.save_to_path(content, path)
             self._file_handler.add_recent(path)
 
     # --- Editor actions ---
@@ -212,7 +233,6 @@ class MainWindow(QMainWindow):
         editor = self._tab_manager.current_editor()
         if not editor or not text:
             return
-        flags = 0
         flags = QsciScintilla.SCFIND_MATCHCASE if case_sensitive else 0
         editor.findFirst(text, False, False, False, True, flags)
 
@@ -234,6 +254,94 @@ class MainWindow(QMainWindow):
             editor.replaceSelectedText(replace)
             count += 1
         self._status.showMessage(f"已替换 {count} 处", 3000)
+
+    # --- Save confirmation on close ---
+
+    def _confirm_save_and_close(self, editor) -> bool:
+        """Returns True if should close, False if cancelled."""
+        eid = id(editor)
+        if not self._tab_manager.is_dirty(eid):
+            return True
+
+        dialog = QMessageBox(self)
+        dialog.setWindowTitle("LiteNotepad")
+        dialog.setText("文件已修改，是否保存更改？")
+        save_btn = dialog.addButton("保存", QMessageBox.ButtonRole.AcceptRole)
+        cancel_btn = dialog.addButton("取消", QMessageBox.ButtonRole.RejectRole)
+        dialog.setDefaultButton(save_btn)
+        dialog.exec()
+
+        if dialog.clickedButton() == cancel_btn:
+            return False
+
+        # Save button
+        path = self._tab_manager.path_for(eid)
+        if path:
+            content = editor.text()
+            self._autosave.save_to_path(content, path)
+        else:
+            # Unnamed file — show save dialog
+            default_name = self._tab_manager.filename_candidate(editor)
+            path, _ = QFileDialog.getSaveFileName(
+                self, "保存", default_name,
+                "Markdown (*.md);;文本文件 (*.txt);;所有文件 (*)"
+            )
+            if not path:
+                return False  # User cancelled save dialog
+            content = editor.text()
+            self._tab_manager.set_current_path(path)
+            self._autosave.save_to_path(content, path)
+            self._file_handler.add_recent(path)
+        return True
+
+    def _close_tab(self, idx: int):
+        editor = self._tab_manager.widget(idx)
+        if not editor:
+            return
+        if self._confirm_save_and_close(editor):
+            self._tab_manager.remove_tab(idx)
+            self._update_title()
+
+    # --- Close window ---
+
+    def closeEvent(self, event):
+        for eid, editor, path, dirty in self._tab_manager.all_editors():
+            if dirty:
+                if not self._confirm_save_and_close(editor):
+                    event.ignore()
+                    return
+        self._settings.window_geometry = self.saveGeometry()
+        super().closeEvent(event)
+
+    # --- Double-click rename ---
+
+    def _on_rename_requested(self, editor):
+        eid = id(editor)
+        path = self._tab_manager.path_for(eid)
+
+        if path:
+            old_dir = os.path.dirname(path)
+            old_basename = os.path.splitext(os.path.basename(path))[0]
+            new_name, ok = QInputDialog.getText(
+                self, "重命名文件", "文件名:",
+                text=old_basename
+            )
+            if ok and new_name:
+                ext = os.path.splitext(path)[1]
+                new_path = os.path.join(old_dir, new_name + ext)
+                try:
+                    os.rename(path, new_path)
+                    self._tab_manager._file_paths[eid] = new_path
+                    self._tab_manager._update_tab_title(editor)
+                    self._update_title()
+                    self._status.showMessage(f"已重命名为 {os.path.basename(new_path)}", 3000)
+                except OSError as e:
+                    QMessageBox.warning(self, "重命名失败", str(e))
+        else:
+            # Unnamed file — show save dialog
+            self._show_save_dialog()
+
+    # --- UI updates ---
 
     def _update_title(self):
         path = self._tab_manager.current_path()
@@ -265,10 +373,3 @@ class MainWindow(QMainWindow):
             self._new_tab(content, path)
         except Exception as e:
             QMessageBox.warning(self, "打开失败", str(e))
-
-    # --- Close ---
-
-    def closeEvent(self, event):
-        self._autosave.save_now()
-        self._settings.window_geometry = self.saveGeometry()
-        super().closeEvent(event)
