@@ -23,6 +23,7 @@ class MainWindow(QMainWindow):
 
         self._file_handler = FileHandler()
         self._settings = Settings()
+        self._last_save_dir = ""
 
         # Center widget: QSplitter with tab manager (left) + MD preview (right)
         self._tab_manager = TabManager()
@@ -188,11 +189,18 @@ class MainWindow(QMainWindow):
         if not editor:
             return
         default_name = self._tab_manager.filename_candidate(editor)
+        default_dir = self._last_save_dir
+        if not default_dir:
+            cur_path = self._tab_manager.current_path()
+            if cur_path:
+                default_dir = os.path.dirname(cur_path)
+        start_path = os.path.join(default_dir, default_name) if default_dir else default_name
         path, _ = QFileDialog.getSaveFileName(
-            self, "保存", default_name,
+            self, "保存", start_path,
             "Markdown (*.md);;文本文件 (*.txt);;所有文件 (*)"
         )
         if path:
+            self._last_save_dir = os.path.dirname(path)
             content = editor.text()
             self._tab_manager.set_current_path(path)
             self._autosave.save_to_path(content, path)
@@ -203,11 +211,18 @@ class MainWindow(QMainWindow):
         if not editor:
             return
         default_name = self._tab_manager.filename_candidate(editor)
+        default_dir = self._last_save_dir
+        if not default_dir:
+            cur_path = self._tab_manager.current_path()
+            if cur_path:
+                default_dir = os.path.dirname(cur_path)
+        start_path = os.path.join(default_dir, default_name) if default_dir else default_name
         path, _ = QFileDialog.getSaveFileName(
-            self, "另存为", default_name,
+            self, "另存为", start_path,
             "Markdown (*.md);;文本文件 (*.txt);;所有文件 (*)"
         )
         if path:
+            self._last_save_dir = os.path.dirname(path)
             content = editor.text()
             self._tab_manager.set_current_path(path)
             self._autosave.save_to_path(content, path)
@@ -292,6 +307,7 @@ class MainWindow(QMainWindow):
             self._tab_manager.set_current_path(path)
             self._autosave.save_to_path(content, path)
             self._file_handler.add_recent(path)
+            self._last_save_dir = os.path.dirname(path)
         return True
 
     def _close_tab(self, idx: int):
