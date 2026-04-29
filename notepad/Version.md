@@ -22,3 +22,4 @@
 - Feature: Ctrl+S on unnamed file shows save dialog
 - Feature: Tab title updates in real-time with first line text
 - Refactor: Per-editor dirty state tracking in TabManager
+- Fix: Save dialog fallback uses previous tab's path, not current tab's path

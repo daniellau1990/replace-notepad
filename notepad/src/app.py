@@ -24,6 +24,7 @@ class MainWindow(QMainWindow):
         self._file_handler = FileHandler()
         self._settings = Settings()
         self._last_save_dir = ""
+        self._prev_editor_path = ""  # previous tab's file dir for save dialog fallback
 
         # Center widget: QSplitter with tab manager (left) + MD preview (right)
         self._tab_manager = TabManager()
@@ -59,6 +60,7 @@ class MainWindow(QMainWindow):
 
         # Tab signals
         self._tab_manager.currentChanged.connect(self._on_tab_changed)
+        self._tab_manager.tabBar().tabBarClicked.connect(self._on_tab_clicked)
         self._tab_manager.tabCloseRequested.connect(self._close_tab)
         self._tab_manager.rename_requested.connect(self._on_rename_requested)
 
@@ -81,6 +83,10 @@ class MainWindow(QMainWindow):
     # --- Tab management ---
 
     def _new_tab(self, content="", path=None):
+        # Record current tab's path before creating new one
+        cur_path = self._tab_manager.current_path()
+        if cur_path:
+            self._prev_editor_path = os.path.dirname(cur_path)
         editor = self._tab_manager.add_new_tab(content, path)
         self._md_preview.set_editor(editor)
         self._update_title()
@@ -91,6 +97,12 @@ class MainWindow(QMainWindow):
             pass
         editor.textChanged.connect(self._md_preview.schedule_render)
         return editor
+
+    def _on_tab_clicked(self, idx: int):
+        """Record current tab's path before switching to another."""
+        prev_path = self._tab_manager.current_path()
+        if prev_path:
+            self._prev_editor_path = os.path.dirname(prev_path)
 
     def _on_tab_changed(self, idx: int):
         editor = self._tab_manager.current_editor()
@@ -191,9 +203,7 @@ class MainWindow(QMainWindow):
         default_name = self._tab_manager.filename_candidate(editor)
         default_dir = self._last_save_dir
         if not default_dir:
-            cur_path = self._tab_manager.current_path()
-            if cur_path:
-                default_dir = os.path.dirname(cur_path)
+            default_dir = self._prev_editor_path
         start_path = os.path.join(default_dir, default_name) if default_dir else default_name
         path, _ = QFileDialog.getSaveFileName(
             self, "保存", start_path,
@@ -213,9 +223,7 @@ class MainWindow(QMainWindow):
         default_name = self._tab_manager.filename_candidate(editor)
         default_dir = self._last_save_dir
         if not default_dir:
-            cur_path = self._tab_manager.current_path()
-            if cur_path:
-                default_dir = os.path.dirname(cur_path)
+            default_dir = self._prev_editor_path
         start_path = os.path.join(default_dir, default_name) if default_dir else default_name
         path, _ = QFileDialog.getSaveFileName(
             self, "另存为", start_path,
@@ -314,6 +322,11 @@ class MainWindow(QMainWindow):
         editor = self._tab_manager.widget(idx)
         if not editor:
             return
+        # Record closing tab's path before it's gone
+        eid = id(editor)
+        close_path = self._tab_manager.path_for(eid)
+        if close_path:
+            self._prev_editor_path = os.path.dirname(close_path)
         if self._confirm_save_and_close(editor):
             self._tab_manager.remove_tab(idx)
             self._update_title()
