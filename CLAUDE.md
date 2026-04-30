@@ -153,8 +153,8 @@ For multi-step tasks, state a brief plan:
 ### 3. 测试验证 → `superpowers-skills-test-driven-development`
 - 按 TDD 范式编写和运行测试，成功即停止
 
-### 4. 调试找根因 → `my-systematic-debugging` 或 `superpowers-skills-systematic-debugging`
-- 遇到 bug 或异常行为时，先调用此 skill 定位根本原因，再制定修复计划
+### 4. 调试找根因 → `my-systematic-debugging` + `superpowers-skills-systematic-debugging`
+- 遇到 bug 或异常行为时，**同时调用这两个 skill** 定位根本原因，再制定修复计划
 
 ### 其他规则
 - 执行范围内：当前项目目录（`D:\AIAGENT应用\replace_txt\`）下的任何增删查改操作，**直接执行，无需询问**
