@@ -403,13 +403,15 @@ class MainWindow(QMainWindow):
     # --- Double-click rename ---
 
     def _on_rename_requested(self, editor, new_text):
+        from src.autosave import AutoSave
         eid = id(editor)
+        clean = AutoSave._sanitize_filename(new_text)
         path = self._tab_manager.path_for(eid)
 
         if path:
             old_dir = os.path.dirname(path)
             ext = os.path.splitext(path)[1]
-            new_path = os.path.join(old_dir, new_text + ext)
+            new_path = os.path.join(old_dir, clean + ext)
             try:
                 os.rename(path, new_path)
                 self._tab_manager._file_paths[eid] = new_path
@@ -419,8 +421,8 @@ class MainWindow(QMainWindow):
             except OSError as e:
                 QMessageBox.warning(self, "重命名失败", str(e))
         else:
-            # Unnamed file — just update default name
-            self._tab_manager._default_names[eid] = new_text
+            # Unnamed file — update default name with sanitized input
+            self._tab_manager._default_names[eid] = clean
             self._tab_manager._update_tab_title(editor)
 
     # --- UI updates ---
