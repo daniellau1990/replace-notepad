@@ -65,8 +65,9 @@ class AutoSave:
     @staticmethod
     def _sanitize_filename(name: str) -> str:
         name = name[:40]
-        safe = re.sub(r'[<>:"/\\|?*]', '_', name)
-        safe = safe.strip("*_~`|[]()")
+        # Delete all OS-illegal and Markdown formatting characters
+        safe = re.sub(r'[<>:"/\\|?*#*_~`\[\]()]', '', name)
+        safe = safe.strip()
         return safe or "未命名"
 
     def _write(self, content, path):
