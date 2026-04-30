@@ -61,6 +61,10 @@ class AutoSave:
             path = os.path.join(DEFAULT_DIR, f"{safe_name}.md")
             self.set_path(path)
         self._write(content, path)
+        editor = self._tab_manager.current_editor()
+        if editor:
+            self._tab_manager.mark_clean(id(editor))
+            self._tab_manager._update_tab_title(editor)
 
     @staticmethod
     def _sanitize_filename(name: str) -> str:

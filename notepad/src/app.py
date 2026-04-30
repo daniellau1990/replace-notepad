@@ -26,7 +26,8 @@ class ClickablePathWidget(QWidget):
         self._prefix.setStyleSheet("color: #888; font-size: 12px;")
         self._path = QLabel("(未保存)")
         self._path.setStyleSheet("color: #0066cc; font-size: 12px;")
-        self._path.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._path.setCursor(Qt.CursorShape.IBeamCursor)
+        self._path.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
 
         self._layout.addWidget(self._prefix)
         self._layout.addWidget(self._path)

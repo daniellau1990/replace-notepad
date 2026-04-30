@@ -151,3 +151,4 @@ For multi-step tasks, state a brief plan:
 - 版本发布时执行：`git tag vX.Y.Z`，并在 `Version.md` 中标注 tag 引用
 - 保留所有历史版本文件，不删除，便于回滚
 - 提交修改到本地 git
+- **每次执行任务完成后，必须在回复末尾告知用户当前版本号**

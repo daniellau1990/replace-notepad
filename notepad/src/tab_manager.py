@@ -38,7 +38,7 @@ class TabManager(QTabWidget):
         else:
             title = self._generate_unnamed_name()
             self._default_names[editor_id] = title
-            editor.setText(f"# {title}\n\n")
+            editor.setText(f"{title}\n\n")
 
         tab_title = os.path.basename(path) if path else f"{title}.md"
         self.addTab(editor, tab_title)
@@ -76,7 +76,8 @@ class TabManager(QTabWidget):
         if path:
             title = os.path.basename(path)
         else:
-            title = f"{self._default_names.get(eid, '未命名')}.md"
+            stem = os.path.splitext(self._default_names.get(eid, '未命名'))[0]
+            title = f"{stem}.md"
         if eid in self._dirty_editors:
             title += " ●"
         self.setTabText(idx, title)
@@ -168,9 +169,9 @@ class TabManager(QTabWidget):
 
         line_edit = QLineEdit(tab_bar)
         current_text = self.tabText(idx).replace(" ●", "")
-        # For unnamed files, show name without .md extension for editing
+        # For unnamed files, show name without extension for editing
         if not self._file_paths.get(id(editor)):
-            current_text = current_text.replace(".md", "")
+            current_text = os.path.splitext(current_text)[0]
         line_edit.setText(current_text)
         line_edit.selectAll()
         line_edit.setGeometry(tab_rect.adjusted(2, 2, -2, -2))

@@ -1,7 +1,16 @@
 # Version History
 
 > 每个版本可通过 `git checkout <tag>` 回退
-> 当前最新: `git checkout v0.3.4`
+> 当前最新: `git checkout v0.3.5`
+
+## v0.3.5 (2026-04-30) [`git tag: v0.3.5`]
+
+**用户反馈修复：**
+- 修复: 新建文件首行去掉 `#` 号，直接显示 `未命名N`
+- 修复: 自动保存后状态栏一直显示"未保存"→ `_do_save` 缺少 `mark_clean` 调用
+- 修复: 双击重命名产生 `.md.md.md` 重复叠加 → `os.path.splitext` 替换不健壮的 `replace(".md","")`
+- 新增: 状态栏路径标签支持鼠标选中复制（IBeam 光标 + 文本可选）
+- 测试: 55 项全部通过
 
 ## v0.3.4 (2026-04-30) [`git tag: v0.3.4`]
 - 修复: `_sanitize_filename` 将 OS 非法字符**删除**而非替换为 `_`（`**\\wode` → `wode` 而非 `__wode`）

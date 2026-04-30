@@ -62,8 +62,8 @@ class TestSmartStatusBar:
         assert "未保存" in pw._prefix.text()
 
     def test_path_widget_clickable(self, qapp):
-        """Path label should have pointing hand cursor."""
+        """Path label should have IBeam cursor for text selection."""
         from src.app import ClickablePathWidget
         pw = ClickablePathWidget()
         pw.set_path("/tmp/test.md", is_auto_save=False)
-        assert pw._path.cursor().shape() == Qt.CursorShape.PointingHandCursor
+        assert pw._path.cursor().shape() == Qt.CursorShape.IBeamCursor
