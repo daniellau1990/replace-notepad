@@ -1,7 +1,15 @@
 # Version History
 
 > 每个版本可通过 `git checkout <tag>` 回退
-> 当前最新: `git checkout v0.3.2`
+> 当前最新: `git checkout v0.3.3`
+
+## v0.3.3 (2026-04-30) [`git tag: v0.3.3`]
+- 修复: 新建文件首行空白 → 自动写入 `# 未命名N`，标签名与首行一致
+- 修复: 状态栏始终显示 `(未保存)` → 显示预期自动保存路径 `Documents/Notes/xxx.md`
+- 修复: 自动保存 30 秒从未触发 → `textChanged` 连接到 `AutoSave.mark_dirty()`
+- 修复: `status_callback` 为空操作 → 自动保存成功后在状态栏显示提示
+- 修复: 首行 MD 格式字符 `**` `_` `~` 等污染文件名 → 自动过滤为合法文件名
+- 优化: 未命名文件窗口标题从 `LiteNotepad` 改为 `未命名N - LiteNotepad`
 
 ## v0.3.2 (2026-04-30) [`git tag: v0.3.2`]
 - 修复: `*斜体*` 改为酒红色（Burgundy）显示，强调内容更醒目
@@ -9,6 +17,11 @@
 - 修复: 为全部 QsciLexerMarkdown 样式优化字体/颜色定义
 - 注意: PyQt6 QScintilla 绑定层限制，样式定义已保存但编辑器内文本样式应用有限
 - 测试: 22 项全部通过
+
+### 用户反馈
+- ✓ `**加粗**` 和 `*斜体酒红色*` 效果满意，当前方案够用
+- ✓ 无需标题大字号功能，保持现状即可
+- → 后续升级方向：如果需要完整着色可换 QTextEdit + QSyntaxHighlighter
 
 ## v0.3.1 (2026-04-30) [`git tag: v0.3.1`]
 - 修复: 为全部 19 个 QsciLexerMarkdown 样式设置字体、前景色和背景色

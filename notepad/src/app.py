@@ -84,7 +84,7 @@ class MainWindow(QMainWindow):
             get_content=lambda: self._tab_manager.current_editor().text() if self._tab_manager.current_editor() else "",
             get_path=lambda: self._tab_manager.current_path(),
             set_path=lambda p: self._tab_manager.set_current_path(p),
-            status_callback=lambda msg: None,
+            status_callback=lambda msg: self._status.showMessage(msg, 3000),
             tab_manager=self._tab_manager,
             interval_ms=self._settings.auto_save_interval,
         )
@@ -165,6 +165,7 @@ class MainWindow(QMainWindow):
         if cur_path:
             self._prev_editor_path = os.path.dirname(cur_path)
         editor = self._tab_manager.add_new_tab(content, path)
+        editor.textChanged.connect(self._autosave.mark_dirty)
         self._update_title()
         return editor
 
@@ -424,7 +425,13 @@ class MainWindow(QMainWindow):
         if path:
             self.setWindowTitle(f"{os.path.basename(path)} - LiteNotepad")
         else:
-            self.setWindowTitle("LiteNotepad")
+            editor = self._tab_manager.current_editor()
+            if editor:
+                idx = self._tab_manager.indexOf(editor)
+                title = self._tab_manager.tabText(idx).replace(" ●", "")
+                self.setWindowTitle(f"{title} - LiteNotepad")
+            else:
+                self.setWindowTitle("LiteNotepad")
 
     def _update_status(self):
         editor = self._tab_manager.current_editor()
@@ -445,7 +452,11 @@ class MainWindow(QMainWindow):
             is_auto = not self._tab_manager.is_dirty(id(editor))
             self._path_widget.set_path(path, is_auto_save=is_auto)
         else:
-            self._path_widget.set_path("", is_auto_save=False)
+            from src.autosave import DEFAULT_DIR, AutoSave
+            name = self._tab_manager.filename_candidate(editor) or "未命名"
+            safe = AutoSave._sanitize_filename(name)
+            expected = os.path.join(DEFAULT_DIR, f"{safe}.md")
+            self._path_widget.set_path(expected, is_auto_save=False)
 
     def _update_recent_menu(self, menu):
         menu.clear()

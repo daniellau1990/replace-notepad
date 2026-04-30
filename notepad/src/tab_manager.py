@@ -38,6 +38,7 @@ class TabManager(QTabWidget):
         else:
             title = self._generate_unnamed_name()
             self._default_names[editor_id] = title
+            editor.setText(f"# {title}\n\n")
 
         self.addTab(editor, title)
         self.setCurrentWidget(editor)
@@ -47,7 +48,7 @@ class TabManager(QTabWidget):
 
     def _generate_unnamed_name(self) -> str:
         self._unnamed_counter += 1
-        return f"未命名文件{self._unnamed_counter}"
+        return f"未命名{self._unnamed_counter}"
 
     # --- Editor change tracking ---
 
@@ -60,6 +61,7 @@ class TabManager(QTabWidget):
         text = editor.text()
         first = text.split("\n", 1)[0].strip()
         first = first.lstrip("#").strip()
+        first = first.strip("*_~`|[]()")
         return first
 
     # --- Tab title ---
