@@ -33,12 +33,17 @@ class ClickablePathWidget(QWidget):
 
     def set_path(self, path: str, is_auto_save: bool = True):
         if path:
-            self._prefix.setText("auto-save: " if is_auto_save else "")
-            self._path.setText(os.path.basename(path))
+            if is_auto_save:
+                self._prefix.setText("已保存 — ")
+                self._prefix.setStyleSheet("color: #34c759; font-size: 12px;")
+            else:
+                self._prefix.setText("未保存 — ")
+                self._prefix.setStyleSheet("color: #ff9500; font-size: 12px;")
+            self._path.setText(path)
             self._path.setToolTip(path)
         else:
             self._prefix.setText("")
-            self._path.setText("(未保存)")
+            self._path.setText("(无文件)")
             self._path.setToolTip("")
 
 

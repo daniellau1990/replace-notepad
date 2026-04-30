@@ -32,19 +32,34 @@ class TestSmartStatusBar:
         assert len(path_widgets) >= 1
 
     def test_path_widget_shows_unsaved_for_new_tab(self, qapp):
-        """New unnamed tab should show (未保存)."""
+        """New unnamed tab should show (无文件)."""
         from src.app import ClickablePathWidget
         pw = ClickablePathWidget()
         pw.set_path("", is_auto_save=False)
-        assert "未保存" in pw._path.text()
+        assert "无文件" in pw._path.text()
 
-    def test_path_widget_shows_basename_for_saved(self, qapp):
-        """Saved file should show basename with optional prefix."""
+    def test_path_widget_shows_saved_status(self, qapp):
+        """Saved file should show 已保存 prefix."""
         from src.app import ClickablePathWidget
         pw = ClickablePathWidget()
         pw.set_path("/tmp/test.md", is_auto_save=True)
         assert "test.md" in pw._path.text()
-        assert "auto-save" in pw._prefix.text()
+        assert "已保存" in pw._prefix.text()
+
+    def test_path_widget_shows_full_path(self, qapp):
+        """Path widget should show full path, not just basename."""
+        from src.app import ClickablePathWidget
+        pw = ClickablePathWidget()
+        pw.set_path(r"D:\Documents\Notes\wode.md", is_auto_save=False)
+        assert "Notes" in pw._path.text()
+        assert "wode.md" in pw._path.text()
+
+    def test_path_widget_shows_unsaved_status(self, qapp):
+        """Unnamed file should show 未保存 prefix with full path."""
+        from src.app import ClickablePathWidget
+        pw = ClickablePathWidget()
+        pw.set_path(r"D:\Documents\Notes\test.md", is_auto_save=False)
+        assert "未保存" in pw._prefix.text()
 
     def test_path_widget_clickable(self, qapp):
         """Path label should have pointing hand cursor."""
