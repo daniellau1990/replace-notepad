@@ -1,7 +1,15 @@
 # Version History
 
 > 每个版本可通过 `git checkout <tag>` 回退
-> 当前最新: `git checkout v0.3.0`
+> 当前最新: `git checkout v0.3.1`
+
+## v0.3.1 (2026-04-30) [`git tag: v0.3.1`]
+- 修复: 为全部 19 个 QsciLexerMarkdown 样式设置字体、前景色和背景色
+- 功能: `**加粗**` 和 `*斜体*` 行内样式正常渲染
+- 功能: 行内 `` `代码` `` 红字灰底显示
+- 功能: 引用文字（`>`）灰色斜体
+- 功能: 代码块灰底
+- 注意: `#`/`##`/`###` 标记符号显示为对应标题字号，但标题文字因 PyQt6 QScintilla 绑定层限制保持默认大小
 
 ## v0.1.0 (2026-04-28) [`git tag: v0.1.0`](204cd3e)
 - Initial implementation: Python + PyQt6 + QScintilla
