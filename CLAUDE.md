@@ -140,8 +140,12 @@ For multi-step tasks, state a brief plan:
 
 ## 工作流程
 
-- 制定计划保存到 `docs\plans\`，文件名含日期和项目目标
+- 每次修改前必须调用 `superpowers-skills-writing-plans` 按 TDD 范式制定计划，保存到 `docs\plans\`
+- 计划需得到用户明确同意后方可执行
 - 按 TDD 范式测试执行，按成功率排名顺序尝试，成功即停止
-- 涉及文件变更时新建版本，不覆盖原文件，更新 Version.md
+- 涉及文件变更时新建版本，不覆盖原文件，更新 `Version.md`
+- 每次修改完成后必须执行：`git commit` + 更新 `Version.md`
+- `Version.md` 中每个版本号对应一个 `git tag`，版本与 commit 一一对应
+- 版本发布时执行：`git tag vX.Y.Z`，并在 `Version.md` 中标注 tag 引用
 - 保留所有历史版本文件，不删除，便于回滚
 - 提交修改到本地 git
