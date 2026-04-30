@@ -1,7 +1,14 @@
 # Version History
 
 > 每个版本可通过 `git checkout <tag>` 回退
-> 当前最新: `git checkout v0.3.1`
+> 当前最新: `git checkout v0.3.2`
+
+## v0.3.2 (2026-04-30) [`git tag: v0.3.2`]
+- 修复: `*斜体*` 改为酒红色（Burgundy）显示，强调内容更醒目
+- 修复: 引用文字灰色斜体渲染优化
+- 修复: 为全部 QsciLexerMarkdown 样式优化字体/颜色定义
+- 注意: PyQt6 QScintilla 绑定层限制，样式定义已保存但编辑器内文本样式应用有限
+- 测试: 22 项全部通过
 
 ## v0.3.1 (2026-04-30) [`git tag: v0.3.1`]
 - 修复: 为全部 19 个 QsciLexerMarkdown 样式设置字体、前景色和背景色

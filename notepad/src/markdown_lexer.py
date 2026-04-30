@@ -3,17 +3,22 @@ from PyQt6.QtGui import QFont, QColor
 
 
 # QsciLexerMarkdown C++ style indices:
-# 0=Default, 1=Special(**,__,`,~~~), 2=Strong(**), 3=Strong(__), 4=Emphasis(*), 5=Emphasis(_)
+# 0=Default, 1=Special, 2=Strong(**), 3=Strong(__), 4=Emphasis(*), 5=Emphasis(_)
 # 6=H1, 7=H2, 8=H3, 9=H4, 10=H5, 11=H6
-# 12=PreChar(code block), 13=UnorderedList, 14=OrderedList, 15=BlockQuote
-# 16=StrikeOut, 17=HorizontalRule, 18=Link, 19=CodeBackticks
+# 12=CodeBlock, 15=BlockQuote, 18=Link, 19=CodeBackticks
 
 
 class MarkdownLexer(QsciLexerMarkdown):
-    """MD lexer with visible heading sizes and consistent inline style colors."""
+    """MD lexer with visible heading sizes and inline style colors.
 
-    _COLOR_DEFAULT = QColor(30, 30, 30)    # near-black
+    Note: PyQt6 QScintilla doesn't apply styleText() to editor text, so these
+    style definitions serve as fallback for any characters the C++ lexer
+    styles. Actual visual highlighting is done via indicators in Editor.
+    """
+
+    _COLOR_DEFAULT = QColor(30, 30, 30)
     _COLOR_WHITE = QColor(255, 255, 255)
+    _COLOR_BURGUNDY = QColor(178, 34, 34)  # for italic emphasis
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -32,137 +37,62 @@ class MarkdownLexer(QsciLexerMarkdown):
         self.setPaper(self._COLOR_WHITE, 0)
 
         # Style 1: Special (markers like **, *, `, ~~)
-        spec_font = QFont("Consolas", 11)
-        spec_font.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
-        self.setFont(spec_font, 1)
-        self.setColor(self._COLOR_DEFAULT, 1)
-        self.setPaper(self._COLOR_WHITE, 1)
+        self._set_style(1, 11, False, False, (30, 30, 30), (255, 255, 255))
 
         # Style 2: Strong emphasis via **
-        bold_font = QFont("Consolas", 11)
-        bold_font.setBold(True)
-        bold_font.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
-        self.setFont(bold_font, 2)
-        self.setColor(self._COLOR_DEFAULT, 2)
-        self.setPaper(self._COLOR_WHITE, 2)
+        self._set_style(2, 11, True, False, (30, 30, 30), (255, 255, 255))
 
         # Style 3: Strong emphasis via __
-        self.setFont(bold_font, 3)
-        self.setColor(self._COLOR_DEFAULT, 3)
-        self.setPaper(self._COLOR_WHITE, 3)
+        self._set_style(3, 11, True, False, (30, 30, 30), (255, 255, 255))
 
-        # Style 4: Emphasis via *
-        italic_font = QFont("Consolas", 11)
-        italic_font.setItalic(True)
-        italic_font.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
-        self.setFont(italic_font, 4)
-        self.setColor(self._COLOR_DEFAULT, 4)
-        self.setPaper(self._COLOR_WHITE, 4)
+        # Style 4: Emphasis via * (burgundy + italic)
+        self._set_style(4, 11, False, True, (178, 34, 34), (255, 255, 255))
 
         # Style 5: Emphasis via _
-        self.setFont(italic_font, 5)
-        self.setColor(self._COLOR_DEFAULT, 5)
-        self.setPaper(self._COLOR_WHITE, 5)
+        self._set_style(5, 11, False, True, (178, 34, 34), (255, 255, 255))
 
-        # H1 (style 6)
-        h1 = QFont("Consolas", 22)
-        h1.setBold(True)
-        h1.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
-        self.setFont(h1, 6)
-        self.setColor(QColor(0, 0, 0), 6)
-        self.setPaper(self._COLOR_WHITE, 6)
+        # H1-H6: heading with distinct sizes and colors
+        self._set_style(6, 22, True, False, (0, 0, 0), (255, 255, 255))     # H1
+        self._set_style(7, 18, True, False, (0, 0, 0), (255, 255, 255))     # H2
+        self._set_style(8, 15, True, False, (30, 30, 30), (255, 255, 255))  # H3
+        self._set_style(9, 13, True, False, (30, 30, 30), (255, 255, 255))  # H4
+        self._set_style(10, 11, True, False, (51, 51, 51), (255, 255, 255))  # H5
+        self._set_style(11, 11, True, False, (51, 51, 51), (255, 255, 255))  # H6
 
-        # H2 (style 7)
-        h2 = QFont("Consolas", 18)
-        h2.setBold(True)
-        h2.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
-        self.setFont(h2, 7)
-        self.setColor(QColor(0, 0, 0), 7)
-        self.setPaper(self._COLOR_WHITE, 7)
+        # Code block
+        self._set_style(12, 11, False, False, (50, 50, 50), (245, 245, 245))
 
-        # H3 (style 8)
-        h3 = QFont("Consolas", 15)
-        h3.setBold(True)
-        h3.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
-        self.setFont(h3, 8)
-        self.setColor(self._COLOR_DEFAULT, 8)
-        self.setPaper(self._COLOR_WHITE, 8)
+        # Unordered list
+        self._set_style(13, 11, False, False, (30, 30, 30), (255, 255, 255))
 
-        # H4 (style 9)
-        h4 = QFont("Consolas", 13)
-        h4.setBold(True)
-        h4.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
-        self.setFont(h4, 9)
-        self.setColor(self._COLOR_DEFAULT, 9)
-        self.setPaper(self._COLOR_WHITE, 9)
+        # Ordered list
+        self._set_style(14, 11, False, False, (30, 30, 30), (255, 255, 255))
 
-        # H5 (style 10)
-        h5 = QFont("Consolas", 11)
-        h5.setBold(True)
-        h5.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
-        self.setFont(h5, 10)
-        self.setColor(QColor(51, 51, 51), 10)
-        self.setPaper(self._COLOR_WHITE, 10)
+        # Block quote
+        self._set_style(15, 11, False, True, (102, 102, 102), (255, 255, 255))
 
-        # H6 (style 11)
-        h6 = QFont("Consolas", 11)
-        h6.setBold(True)
-        h6.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
-        self.setFont(h6, 11)
-        self.setColor(QColor(51, 51, 51), 11)
-        self.setPaper(self._COLOR_WHITE, 11)
+        # Strike out
+        self._set_style(16, 11, False, False, (128, 128, 128), (255, 255, 255),
+                        strike=True)
 
-        # Style 12: Pre-char (code block)
-        code = QFont("Consolas", 11)
-        code.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
-        self.setFont(code, 12)
-        self.setColor(QColor(50, 50, 50), 12)
-        self.setPaper(QColor(245, 245, 245), 12)
+        # Horizontal rule
+        self._set_style(17, 11, False, False, (200, 200, 200), (255, 255, 255))
 
-        # Style 13: Unordered list
-        ul = QFont("Consolas", 11)
-        ul.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
-        self.setFont(ul, 13)
-        self.setColor(self._COLOR_DEFAULT, 13)
-        self.setPaper(self._COLOR_WHITE, 13)
+        # Link
+        self._set_style(18, 11, False, False, (0, 100, 200), (255, 255, 255),
+                        underline=True)
 
-        # Style 14: Ordered list
-        self.setFont(ul, 14)
-        self.setColor(self._COLOR_DEFAULT, 14)
-        self.setPaper(self._COLOR_WHITE, 14)
+        # Code between backticks
+        self._set_style(19, 11, False, False, (200, 50, 50), (240, 240, 240))
 
-        # Style 15: Block quote
-        bq = QFont("Consolas", 11)
-        bq.setItalic(True)
-        bq.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
-        self.setFont(bq, 15)
-        self.setColor(QColor(100, 100, 100), 15)
-        self.setPaper(self._COLOR_WHITE, 15)
-
-        # Style 16: Strike out
-        strike = QFont("Consolas", 11)
-        strike.setStrikeOut(True)
-        strike.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
-        self.setFont(strike, 16)
-        self.setColor(QColor(128, 128, 128), 16)
-        self.setPaper(self._COLOR_WHITE, 16)
-
-        # Style 17: Horizontal rule
-        self.setFont(base, 17)
-        self.setColor(QColor(200, 200, 200), 17)
-        self.setPaper(self._COLOR_WHITE, 17)
-
-        # Style 18: Link
-        link = QFont("Consolas", 11)
-        link.setUnderline(True)
-        link.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
-        self.setFont(link, 18)
-        self.setColor(QColor(0, 100, 200), 18)
-        self.setPaper(self._COLOR_WHITE, 18)
-
-        # Style 19: Code between backticks
-        cb = QFont("Consolas", 11)
-        cb.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
-        self.setFont(cb, 19)
-        self.setColor(QColor(200, 50, 50), 19)
-        self.setPaper(QColor(240, 240, 240), 19)
+    def _set_style(self, index, size, bold, italic, fg, bg, underline=False,
+                   strike=False):
+        font = QFont("Consolas", size)
+        font.setBold(bold)
+        font.setItalic(italic)
+        font.setStrikeOut(strike)
+        font.setUnderline(underline)
+        font.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
+        self.setFont(font, index)
+        self.setColor(QColor(*fg), index)
+        self.setPaper(QColor(*bg), index)
