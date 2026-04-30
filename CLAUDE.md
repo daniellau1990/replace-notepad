@@ -140,11 +140,25 @@ For multi-step tasks, state a brief plan:
 
 ## 工作流程
 
-- 每次修改前必须调用 `superpowers-skills-writing-plans` 按 TDD 范式制定计划，保存到 `docs\plans\`
+每次开发任务按以下四步执行，每步使用对应的 skill：
+
+### 1. 制定计划 → `superpowers-skills-writing-plans`
+- 任何修改前必须先调用此 skill 制定 TDD 范式计划
+- 计划保存到 `docs\plans\YYYY-MM-DD-<feature>.md`
 - 计划需得到用户明确同意后方可执行
+
+### 2. 执行计划 → `superpowers-skills-subagent-driven-development`
+- 用户同意计划后，调用此 skill 分派子代理逐任务执行
+
+### 3. 测试验证 → `superpowers-skills-test-driven-development`
+- 按 TDD 范式编写和运行测试，成功即停止
+
+### 4. 调试找根因 → `my-systematic-debugging` 或 `superpowers-skills-systematic-debugging`
+- 遇到 bug 或异常行为时，先调用此 skill 定位根本原因，再制定修复计划
+
+### 其他规则
 - 执行范围内：当前项目目录（`D:\AIAGENT应用\replace_txt\`）下的任何增删查改操作，**直接执行，无需询问**
 - 执行范围外：任何修改当前项目以外文件的操作，必须先询问用户
-- 按 TDD 范式测试执行，按成功率排名顺序尝试，成功即停止
 - 涉及文件变更时新建版本，不覆盖原文件，更新 `Version.md`
 - 每次修改完成后必须执行：`git commit` + 更新 `Version.md`
 - `Version.md` 中每个版本号对应一个 `git tag`，版本与 commit 一一对应
