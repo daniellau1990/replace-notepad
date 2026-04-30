@@ -1,15 +1,45 @@
 import os
 
 from PyQt6.Qsci import QsciScintilla
-from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, QStatusBar
+from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, \
+    QStatusBar, QLabel, QWidget, QHBoxLayout
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QAction, QKeySequence
+from PyQt6.QtGui import QAction, QKeySequence, QFont
 
 from src.tab_manager import TabManager
 from src.autosave import AutoSave
 from src.file_handler import FileHandler
 from src.find_replace import FindReplace
 from src.settings import Settings
+
+
+class ClickablePathWidget(QWidget):
+    """Status bar widget showing file path, clickable to edit."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._layout = QHBoxLayout(self)
+        self._layout.setContentsMargins(4, 0, 4, 0)
+        self._layout.setSpacing(2)
+
+        self._prefix = QLabel("")
+        self._prefix.setStyleSheet("color: #888; font-size: 12px;")
+        self._path = QLabel("(未保存)")
+        self._path.setStyleSheet("color: #0066cc; font-size: 12px;")
+        self._path.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        self._layout.addWidget(self._prefix)
+        self._layout.addWidget(self._path)
+
+    def set_path(self, path: str, is_auto_save: bool = True):
+        if path:
+            self._prefix.setText("auto-save: " if is_auto_save else "")
+            self._path.setText(os.path.basename(path))
+            self._path.setToolTip(path)
+        else:
+            self._prefix.setText("")
+            self._path.setText("(未保存)")
+            self._path.setToolTip("")
 
 
 class MainWindow(QMainWindow):
@@ -35,9 +65,17 @@ class MainWindow(QMainWindow):
         self._find_replace.replace_requested.connect(self._on_replace)
         self._find_replace.replace_all_requested.connect(self._on_replace_all)
 
-        # Status bar
+        # Status bar: permanent labels for line/col and path
         self._status = QStatusBar()
         self.setStatusBar(self._status)
+
+        self._line_col_label = QLabel("第 1 行，第 1 列 | 0 行")
+        self._line_col_label.setStyleSheet("font-size: 12px; padding: 0 8px;")
+        self._status.addWidget(self._line_col_label)
+
+        self._path_widget = ClickablePathWidget()
+        self._status.addPermanentWidget(self._path_widget)
+
         self._status.addPermanentWidget(self._find_replace)
         self._find_replace.hide()
 
@@ -46,7 +84,7 @@ class MainWindow(QMainWindow):
             get_content=lambda: self._tab_manager.current_editor().text() if self._tab_manager.current_editor() else "",
             get_path=lambda: self._tab_manager.current_path(),
             set_path=lambda p: self._tab_manager.set_current_path(p),
-            status_callback=lambda msg: self._status.showMessage(msg, 3000),
+            status_callback=lambda msg: None,
             tab_manager=self._tab_manager,
             interval_ms=self._settings.auto_save_interval,
         )
@@ -348,7 +386,20 @@ class MainWindow(QMainWindow):
             return
         lines = editor.lines()
         pos = editor.getCursorPosition()
-        self._status.showMessage(f"第 {pos[0]+1} 行，第 {pos[1]+1} 列 | {lines} 行")
+        self._line_col_label.setText(f"第 {pos[0]+1} 行，第 {pos[1]+1} 列 | {lines} 行")
+        self._update_path_display()
+
+    def _update_path_display(self):
+        editor = self._tab_manager.current_editor()
+        if not editor:
+            self._path_widget.set_path("", is_auto_save=False)
+            return
+        path = self._tab_manager.current_path()
+        if path:
+            is_auto = not self._tab_manager.is_dirty(id(editor))
+            self._path_widget.set_path(path, is_auto_save=is_auto)
+        else:
+            self._path_widget.set_path("", is_auto_save=False)
 
     def _update_recent_menu(self, menu):
         menu.clear()
