@@ -142,6 +142,8 @@ For multi-step tasks, state a brief plan:
 
 - 每次修改前必须调用 `superpowers-skills-writing-plans` 按 TDD 范式制定计划，保存到 `docs\plans\`
 - 计划需得到用户明确同意后方可执行
+- 执行范围内：当前项目目录（`D:\AIAGENT应用\replace_txt\`）下的任何增删查改操作，**直接执行，无需询问**
+- 执行范围外：任何修改当前项目以外文件的操作，必须先询问用户
 - 按 TDD 范式测试执行，按成功率排名顺序尝试，成功即停止
 - 涉及文件变更时新建版本，不覆盖原文件，更新 `Version.md`
 - 每次修改完成后必须执行：`git commit` + 更新 `Version.md`
