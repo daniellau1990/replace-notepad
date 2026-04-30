@@ -10,6 +10,7 @@ from src.app import MainWindow
 
 def main():
     app = QApplication(sys.argv)
+    app.setStyle("Fusion")
     app.setApplicationName("LiteNotepad")
     app.setOrganizationName("LiteNotepad")
 

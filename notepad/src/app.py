@@ -98,6 +98,52 @@ class MainWindow(QMainWindow):
         # Menu bar
         self._build_menu()
 
+        # Apple-style clean QSS
+        self.setStyleSheet("""
+            QMainWindow { background: #ffffff; }
+            QTabWidget::pane { border: none; }
+            QTabBar::tab {
+                padding: 6px 16px;
+                border: none;
+                border-bottom: 2px solid transparent;
+                color: #555;
+                font-size: 13px;
+            }
+            QTabBar::tab:selected {
+                color: #000;
+                border-bottom: 2px solid #007aff;
+            }
+            QTabBar::tab:hover:!selected {
+                color: #333;
+                border-bottom: 2px solid #ccc;
+            }
+            QStatusBar {
+                background: #f5f5f5;
+                border-top: 1px solid #e0e0e0;
+                font-size: 12px;
+            }
+            QMenuBar {
+                background: #fafafa;
+                border-bottom: 1px solid #e0e0e0;
+                font-size: 13px;
+            }
+            QMenuBar::item:selected {
+                background: #e8e8e8;
+            }
+            QMenu {
+                background: #ffffff;
+                border: 1px solid #d0d0d0;
+                padding: 4px 0;
+            }
+            QMenu::item {
+                padding: 6px 24px;
+            }
+            QMenu::item:selected {
+                background: #007aff;
+                color: white;
+            }
+        """)
+
         # Default tab
         self._new_tab()
 
