@@ -1,6 +1,8 @@
-from PyQt6.Qsci import QsciScintilla, QsciLexerMarkdown
+from PyQt6.Qsci import QsciScintilla
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QColor
+
+from src.markdown_lexer import MarkdownLexer
 
 
 class Editor(QsciScintilla):
@@ -36,11 +38,10 @@ class Editor(QsciScintilla):
         self.setIndentationGuidesBackgroundColor(QColor(240, 240, 240))
 
     def _setup_lexer(self):
-        self._lexer = QsciLexerMarkdown(self)
+        self._lexer = MarkdownLexer(self)
+        self.setLexer(self._lexer)
         font = QFont("Consolas", 11)
         font.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
-        self._lexer.setDefaultFont(font)
-        self.setLexer(self._lexer)
         self.setFont(font)
 
     def toggle_bold(self):
