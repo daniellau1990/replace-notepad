@@ -1,14 +1,13 @@
 import os
 
 from PyQt6.Qsci import QsciScintilla
-from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, QStatusBar, QSplitter
+from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, QStatusBar
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QAction, QKeySequence
 
 from src.tab_manager import TabManager
 from src.autosave import AutoSave
 from src.file_handler import FileHandler
-from src.md_preview import MarkdownPreview
 from src.find_replace import FindReplace
 from src.settings import Settings
 
@@ -26,15 +25,9 @@ class MainWindow(QMainWindow):
         self._last_save_dir = ""
         self._prev_editor_path = ""  # previous tab's file dir for save dialog fallback
 
-        # Center widget: QSplitter with tab manager (left) + MD preview (right)
+        # Center widget: tab manager fills the entire window
         self._tab_manager = TabManager()
-        self._md_preview = MarkdownPreview()
-
-        self._splitter = QSplitter(Qt.Orientation.Horizontal)
-        self._splitter.addWidget(self._tab_manager)
-        self._splitter.addWidget(self._md_preview)
-        self._splitter.setSizes([500, 400])
-        self.setCentralWidget(self._splitter)
+        self.setCentralWidget(self._tab_manager)
 
         # Find/Replace bar
         self._find_replace = FindReplace(self)
@@ -88,14 +81,7 @@ class MainWindow(QMainWindow):
         if cur_path:
             self._prev_editor_path = os.path.dirname(cur_path)
         editor = self._tab_manager.add_new_tab(content, path)
-        self._md_preview.set_editor(editor)
         self._update_title()
-        # Connect preview (ensure no duplicate connections)
-        try:
-            editor.textChanged.disconnect(self._md_preview.schedule_render)
-        except TypeError:
-            pass
-        editor.textChanged.connect(self._md_preview.schedule_render)
         return editor
 
     def _on_tab_clicked(self, idx: int):
@@ -105,10 +91,7 @@ class MainWindow(QMainWindow):
             self._prev_editor_path = os.path.dirname(prev_path)
 
     def _on_tab_changed(self, idx: int):
-        editor = self._tab_manager.current_editor()
-        self._md_preview.set_editor(editor)
-        if editor:
-            self._update_title()
+        self._update_title()
 
     # --- Menu ---
 
@@ -164,14 +147,6 @@ class MainWindow(QMainWindow):
         find_act.setShortcut(QKeySequence("Ctrl+F"))
         find_act.triggered.connect(self._find_replace.toggle)
         edit_menu.addAction(find_act)
-
-        # View menu
-        view_menu = menubar.addMenu("视图(&V)")
-
-        preview_act = QAction("Markdown 预览(&P)", self)
-        preview_act.setShortcut(QKeySequence("Ctrl+P"))
-        preview_act.triggered.connect(self._toggle_preview)
-        view_menu.addAction(preview_act)
 
     # --- File operations ---
 
@@ -242,13 +217,6 @@ class MainWindow(QMainWindow):
         editor = self._tab_manager.current_editor()
         if editor:
             editor.toggle_bold()
-
-    def _toggle_preview(self):
-        visible = not self._md_preview.isVisible()
-        self._md_preview.setVisible(visible)
-        self._status.showMessage(
-            "预览已显示" if visible else "预览已隐藏", 2000
-        )
 
     # --- Find/Replace ---
 
