@@ -169,9 +169,8 @@ class TabManager(QTabWidget):
 
         line_edit = QLineEdit(tab_bar)
         current_text = self.tabText(idx).replace(" ●", "")
-        # For unnamed files, show name without extension for editing
-        if not self._file_paths.get(id(editor)):
-            current_text = os.path.splitext(current_text)[0]
+        # Always show filename stem without extension for editing
+        current_text = os.path.splitext(current_text)[0]
         line_edit.setText(current_text)
         line_edit.selectAll()
         line_edit.setGeometry(tab_rect.adjusted(2, 2, -2, -2))

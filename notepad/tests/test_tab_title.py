@@ -68,3 +68,25 @@ class TestTabTitle:
         tm.mark_clean(eid)
         tm._update_tab_title(editor)
         assert "●" not in tm.tabText(tm.indexOf(editor))
+
+    def test_rename_box_stem_for_saved_file(self, qapp):
+        """Saved file's rename box should derive stem correctly."""
+        from src.tab_manager import TabManager
+        import os
+        tm = TabManager()
+        editor = tm.add_new_tab(content="# Hello\nWorld", path="/tmp/myfile.md")
+        idx = tm.indexOf(editor)
+        tab_text = tm.tabText(idx).replace(" ●", "")
+        stem = os.path.splitext(tab_text)[0]
+        assert stem == "myfile"
+
+    def test_rename_box_stem_for_unnamed_file(self, qapp):
+        """Unnamed file's rename box should derive stem correctly."""
+        from src.tab_manager import TabManager
+        import os
+        tm = TabManager()
+        editor = tm.add_new_tab()
+        idx = tm.indexOf(editor)
+        tab_text = tm.tabText(idx).replace(" ●", "")
+        stem = os.path.splitext(tab_text)[0]
+        assert stem == "未命名1"
