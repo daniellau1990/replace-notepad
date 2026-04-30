@@ -40,7 +40,8 @@ class TabManager(QTabWidget):
             self._default_names[editor_id] = title
             editor.setText(f"# {title}\n\n")
 
-        self.addTab(editor, title)
+        tab_title = os.path.basename(path) if path else f"{title}.md"
+        self.addTab(editor, tab_title)
         self.setCurrentWidget(editor)
 
         editor.textChanged.connect(lambda: self._on_editor_changed(editor))
@@ -75,16 +76,18 @@ class TabManager(QTabWidget):
         if path:
             title = os.path.basename(path)
         else:
-            first = self._first_line(editor)
-            title = first if first else self._default_names.get(eid, "未命名")
+            title = f"{self._default_names.get(eid, '未命名')}.md"
         if eid in self._dirty_editors:
             title += " ●"
         self.setTabText(idx, title)
 
     def filename_candidate(self, editor) -> str:
-        """Filename suggestion from first line or default name."""
-        first = self._first_line(editor)
-        return first if first else self._default_names.get(id(editor), "未命名")
+        """Return filename stem — default name for unnamed, basename without ext for saved."""
+        eid = id(editor)
+        path = self._file_paths.get(eid)
+        if path:
+            return os.path.splitext(os.path.basename(path))[0]
+        return self._default_names.get(eid, "未命名")
 
     # --- Dirty state ---
 
