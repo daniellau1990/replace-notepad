@@ -140,21 +140,51 @@ For multi-step tasks, state a brief plan:
 
 ## 工作流程
 
-每次开发任务按以下四步执行，每步使用对应的 skill：
+每次开发任务按以下步骤执行，核心目标：**实现 A 功能，绝不破坏 B 功能**。
 
-### 1. 制定计划 → `superpowers-skills-writing-plans`
-- 任何修改前必须先调用此 skill 制定 TDD 范式计划
-- 计划保存到 `docs\plans\YYYY-MM-DD-<feature>.md`
-- 计划需得到用户明确同意后方可执行
+### 0. 准备 — 读取上下文
+- 任务开始前，AI 必须读取 `openspec/specs/` 中相关的 spec 文件
+- 了解已有行为契约，标记"不能破坏"的边界
 
-### 2. 执行计划 → `superpowers-skills-subagent-driven-development`
-- 用户同意计划后，调用此 skill 分派子代理逐任务执行
+### 1. 需求澄清 → `superpowers-skills-brainstorming`
+- 任何修改前，先用 brainstorm 把需求聊透
+- 确认：要做什么、不做什么、边界在哪
 
-### 3. 测试验证 → `superpowers-skills-test-driven-development`
-- 按 TDD 范式编写和运行测试，成功即停止
+### 2. 规格先行 → `/opsx:propose`
+- 生成 proposal.md + delta spec + design.md + tasks.md
+- delta spec 与主 spec 对比，冲突时警告
 
-### 4. 调试找根因 → `my-systematic-debugging` + `superpowers-skills-systematic-debugging`
-- 遇到 bug 或异常行为时，**同时调用这两个 skill** 定位根本原因，再制定修复计划
+### 3. 人工审查
+- 用户确认 proposal.md 的需求和方向
+- **唯一的人工卡点**：方向错了当场纠正，不返工
+
+### 4. 制定计划 → `superpowers-skills-writing-plans`
+- 基于 design 拆解原子 TDD 任务
+- 计划保存到 `docs/plans/YYYY-MM-DD-<feature>.md`
+- 用户明确同意后方可执行
+
+### 5. 执行计划 → `superpowers-skills-subagent-driven-development`
+- 每个子代理执行前**必须读取 `openspec/specs/`** 获取上下文
+- 逐任务执行，每完成一个 task 即 commit
+
+### 6. 测试验证（两层）
+- **TDD（`superpowers-skills-test-driven-development`）**：
+  写新代码前先写测试，保证新功能正确
+- **全量回归（`pytest tests/`）**：
+  所有改动完成后跑全部测试，保证旧功能没坏
+- 有任何一个 FAIL → 修好再继续，不到下一步
+
+### 7. 归档记忆 → `/opsx:archive`
+- delta spec 合并到 `openspec/specs/`，知识库自更新
+- 下一次 AI 任务自动读取，不再遗忘
+
+### 8. 版本锚点 → git
+- `git commit` + 更新 `Version.md`
+- `git tag vX.Y.Z`：出问题可精确回退
+
+### 9. 调试（按需） → `my-systematic-debugging` + `superpowers-skills-systematic-debugging`
+- 遇到 bug 时，同时调用两个 skill 定位根因
+- 先查根因，再走 ②→⑧ 修复流程
 
 ### 其他规则
 - 执行范围内：当前项目目录（`D:\AIAGENT应用\replace_txt\`）下的任何增删查改操作，**直接执行，无需询问**
