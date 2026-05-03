@@ -1,7 +1,15 @@
 # Version History
 
 > 每个版本可通过 `git checkout <tag>` 回退
-> 当前最新: `git checkout v0.3.7`
+> 当前最新: `git checkout v0.3.8`
+
+## v0.3.8 (2026-05-03) [`git tag: v0.3.8`]
+- **Guardrail 工作流强制执行**:
+  - 新增 `.claude/hooks/workflow_check.py` — PreToolUse hook 脚本，检查 `docs/plans/` 当日计划文件
+  - 重构 `CLAUDE.md` — MANDATORY WORKFLOW 置于文件顶部，含 GATE 检查点和 Quick Compliance Check
+  - 新增 `settings.local.json` hooks — Write|Edit 守卫 + git commit 守卫
+  - 新增文档 `docs/2026-05-03-Guardrail.md` / `Harness.md` / `Guardrail-vs-Harness.md`
+- 白名单路径始终放行：`docs/**`、`Version.md`、`CLAUDE.md`、`*.bat`、`.claude/**`
 
 ## v0.3.7 (2026-05-03) [`git tag: v0.3.7`]
 - **12 项需求合集**:

@@ -22,6 +22,90 @@ pip install PyQt6 PyQt6-QScintilla markdown
 pip freeze > requirements.txt
 ```
 
+---
+
+## MANDATORY WORKFLOW — ENFORCED BY HOOKS
+
+> **PreToolUse hooks will physically BLOCK writes to `notepad/src/**/*.py` and `git commit`
+> commands if no plan file exists for today at `docs/plans/YYYY-MM-DD-<feature>.md`.
+> This is NOT optional. You MUST complete Steps 1-4 before writing code.**
+
+每次开发任务按以下步骤执行，核心目标：**实现 A 功能，绝不破坏 B 功能**。
+
+### 0. 准备 — 读取上下文
+- 任务开始前，AI 必须读取 `openspec/specs/` 中相关的 spec 文件
+- 了解已有行为契约，标记"不能破坏"的边界
+- [ ] 检查点：spec 已读取
+
+### 1. 需求澄清 → `superpowers-skills-brainstorming`
+- 任何修改前，先用 brainstorm 把需求聊透
+- 确认：要做什么、不做什么、边界在哪
+- [ ] 检查点：需求边界已明确
+
+### 2. 规格先行 → `/opsx:propose`
+- 生成 proposal.md + delta spec + design.md + tasks.md
+- delta spec 与主 spec 对比，冲突时警告
+- [ ] 检查点：proposal 已生成
+
+### 3. 人工审查
+- 用户确认 proposal.md 的需求和方向
+- **唯一的人工卡点**：方向错了当场纠正，不返工
+- [ ] 检查点：用户已批准
+
+### 4. 制定计划 → `superpowers-skills-writing-plans` **[GATE — HOOK ENFORCED]**
+- 基于 design 拆解原子 TDD 任务
+- 计划保存到 `docs/plans/YYYY-MM-DD-<feature>.md`
+- 用户明确同意后方可执行
+- [ ] **检查点：计划文件已存在于 docs/plans/ ← 此后才能写代码**
+
+### 5. 执行计划 → `superpowers-skills-subagent-driven-development`
+- 每个子代理执行前**必须读取 `openspec/specs/`** 获取上下文
+- 逐任务执行，每完成一个 task 即 commit
+
+### 6. 测试验证（两层）
+- **TDD（`superpowers-skills-test-driven-development`）**：
+  写新代码前先写测试，保证新功能正确
+- **全量回归（`pytest tests/`）**：
+  所有改动完成后跑全部测试，保证旧功能没坏
+- 有任何一个 FAIL → 修好再继续，不到下一步
+
+### 7. 归档记忆 → `/opsx:archive`
+- delta spec 合并到 `openspec/specs/`，知识库自更新
+- 下一次 AI 任务自动读取，不再遗忘
+
+### 8. 版本锚点 → git
+- `git commit` + 更新 `Version.md`
+- `git tag vX.Y.Z`：出问题可精确回退
+
+### 9. 调试（按需） → `my-systematic-debugging` + `superpowers-skills-systematic-debugging`
+- 遇到 bug 时，同时调用两个 skill 定位根因
+- 先查根因，再走 ②→⑧ 修复流程
+
+### QUICK COMPLIANCE CHECK
+
+在写代码之前，自查以下清单（全部 YES 才能动手）：
+
+- [ ] 我读了 `openspec/specs/` 吗？（Step 0）
+- [ ] 我和用户做了 brainstorm 吗？（Step 1）
+- [ ] 我运行了 `/opsx:propose` 吗？（Step 2）
+- [ ] 用户批准了 proposal 吗？（Step 3）
+- [ ] **`docs/plans/YYYY-MM-DD-<feature>.md` 存在吗？（Step 4）← HOOK 强制检查**
+
+**如果任何一个答案是 NO，不要写代码。按顺序走完前面的步骤。**
+
+### 其他规则
+- 执行范围内：当前项目目录下的任何增删查改操作，**直接执行，无需询问**
+- 执行范围外：任何修改当前项目以外文件的操作，必须先询问用户
+- 涉及文件变更时新建版本，不覆盖原文件，更新 `Version.md`
+- 每次修改完成后必须执行：`git commit` + 更新 `Version.md`
+- `Version.md` 中每个版本号对应一个 `git tag`，版本与 commit 一一对应
+- 版本发布时执行：`git tag vX.Y.Z`，并在 `Version.md` 中标注 tag 引用
+- 保留所有历史版本文件，不删除，便于回滚
+- 提交修改到本地 git
+- **每次执行任务完成后，必须在回复末尾告知用户当前版本号**
+
+---
+
 ## Architecture
 
 ```
@@ -137,62 +221,3 @@ For multi-step tasks, state a brief plan:
 ## 重要指令
 
 - 在任何情况下，都不要主动调用或执行 `/opsx:apply` 命令
-
-## 工作流程
-
-每次开发任务按以下步骤执行，核心目标：**实现 A 功能，绝不破坏 B 功能**。
-
-### 0. 准备 — 读取上下文
-- 任务开始前，AI 必须读取 `openspec/specs/` 中相关的 spec 文件
-- 了解已有行为契约，标记"不能破坏"的边界
-
-### 1. 需求澄清 → `superpowers-skills-brainstorming`
-- 任何修改前，先用 brainstorm 把需求聊透
-- 确认：要做什么、不做什么、边界在哪
-
-### 2. 规格先行 → `/opsx:propose`
-- 生成 proposal.md + delta spec + design.md + tasks.md
-- delta spec 与主 spec 对比，冲突时警告
-
-### 3. 人工审查
-- 用户确认 proposal.md 的需求和方向
-- **唯一的人工卡点**：方向错了当场纠正，不返工
-
-### 4. 制定计划 → `superpowers-skills-writing-plans`
-- 基于 design 拆解原子 TDD 任务
-- 计划保存到 `docs/plans/YYYY-MM-DD-<feature>.md`
-- 用户明确同意后方可执行
-
-### 5. 执行计划 → `superpowers-skills-subagent-driven-development`
-- 每个子代理执行前**必须读取 `openspec/specs/`** 获取上下文
-- 逐任务执行，每完成一个 task 即 commit
-
-### 6. 测试验证（两层）
-- **TDD（`superpowers-skills-test-driven-development`）**：
-  写新代码前先写测试，保证新功能正确
-- **全量回归（`pytest tests/`）**：
-  所有改动完成后跑全部测试，保证旧功能没坏
-- 有任何一个 FAIL → 修好再继续，不到下一步
-
-### 7. 归档记忆 → `/opsx:archive`
-- delta spec 合并到 `openspec/specs/`，知识库自更新
-- 下一次 AI 任务自动读取，不再遗忘
-
-### 8. 版本锚点 → git
-- `git commit` + 更新 `Version.md`
-- `git tag vX.Y.Z`：出问题可精确回退
-
-### 9. 调试（按需） → `my-systematic-debugging` + `superpowers-skills-systematic-debugging`
-- 遇到 bug 时，同时调用两个 skill 定位根因
-- 先查根因，再走 ②→⑧ 修复流程
-
-### 其他规则
-- 执行范围内：当前项目目录下的任何增删查改操作，**直接执行，无需询问**
-- 执行范围外：任何修改当前项目以外文件的操作，必须先询问用户
-- 涉及文件变更时新建版本，不覆盖原文件，更新 `Version.md`
-- 每次修改完成后必须执行：`git commit` + 更新 `Version.md`
-- `Version.md` 中每个版本号对应一个 `git tag`，版本与 commit 一一对应
-- 版本发布时执行：`git tag vX.Y.Z`，并在 `Version.md` 中标注 tag 引用
-- 保留所有历史版本文件，不删除，便于回滚
-- 提交修改到本地 git
-- **每次执行任务完成后，必须在回复末尾告知用户当前版本号**
