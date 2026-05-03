@@ -70,7 +70,7 @@ class AutoSave:
     def _sanitize_filename(name: str) -> str:
         name = name[:40]
         # Delete all OS-illegal and Markdown formatting characters
-        safe = re.sub(r'[<>:"/\\|?*#*_~`\[\]()]', '', name)
+        safe = re.sub(r'[<>:"/\\|?*#~`\[\]()]', '', name)
         safe = safe.strip()
         return safe or "未命名"
 

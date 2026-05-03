@@ -41,4 +41,9 @@ class Settings:
 
     @property
     def default_dir(self) -> str:
-        return self._settings.value("defaultDir", "")
+        import os
+        return self._settings.value("defaultDir", os.path.join(os.path.expanduser("~"), "Documents", "Notes"))
+
+    @default_dir.setter
+    def default_dir(self, value: str) -> None:
+        self._settings.setValue("defaultDir", value)

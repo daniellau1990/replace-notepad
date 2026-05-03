@@ -1,5 +1,5 @@
 from PyQt6.Qsci import QsciScintilla
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont, QColor
 
 from src.markdown_lexer import MarkdownLexer
@@ -14,38 +14,42 @@ class Editor(QsciScintilla):
         self._setup_caret()
         self._setup_auto_indent()
         self._setup_lexer()
+        self._setup_wrap()
+        self._setup_highlight()
 
     def _setup_margins(self):
-        # Line number margin
         self.setMarginType(0, QsciScintilla.MarginType.NumberMargin)
         self.setMarginWidth(0, 40)
         self.setMarginsForegroundColor(QColor(128, 128, 128))
         self.setMarginsBackgroundColor(QColor(240, 240, 240))
         self.setMarginLineNumbers(0, True)
-
-        # Symbol margin (for fold markers etc.) — hide it
         self.setMarginWidth(1, 0)
 
     def _setup_caret(self):
         self.setCaretWidth(2)
         self.setCaretForegroundColor(QColor(0, 0, 0))
+        self.setExtraAscent(0)
+        self.setExtraDescent(0)
 
     def _setup_auto_indent(self):
         self.setAutoIndent(True)
         self.setTabWidth(4)
-        self.setIndentationGuides(True)
-        self.setIndentationGuidesForegroundColor(QColor(200, 200, 200))
-        self.setIndentationGuidesBackgroundColor(QColor(240, 240, 240))
+        self.setIndentationGuides(False)
 
     def _setup_lexer(self):
         self._lexer = MarkdownLexer(self)
         self.setLexer(self._lexer)
-        font = QFont("Consolas", 11)
+        from src.settings import Settings
+        size = Settings().font_size
+        font = QFont("Consolas", size)
         font.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
         self.setFont(font)
 
+    def _setup_wrap(self):
+        self.setWrapMode(QsciScintilla.WrapMode.WrapWord)
+        self.SendScintilla(QsciScintilla.SCI_SETHSCROLLBAR, 0)
+
     def toggle_bold(self):
-        """Wrap selected text with **, or remove them if already wrapped."""
         if not self.hasSelectedText():
             return
         line_from, index_from, line_to, index_to = self.getSelection()
@@ -61,7 +65,6 @@ class Editor(QsciScintilla):
         self.setSelection(line_from, index_from, end_line, end_index)
 
     def wheelEvent(self, event):
-        """Ctrl+Scroll to zoom in/out."""
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             delta = event.angleDelta().y()
             if delta > 0:
@@ -71,3 +74,68 @@ class Editor(QsciScintilla):
             event.accept()
             return
         super().wheelEvent(event)
+
+    # --- Image drag & drop ---
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            for url in event.mimeData().urls():
+                if url.isLocalFile() and self._is_image_file(url.toLocalFile()):
+                    event.acceptProposedAction()
+                    return
+        super().dragEnterEvent(event)
+
+    def dropEvent(self, event):
+        if event.mimeData().hasUrls():
+            for url in event.mimeData().urls():
+                if url.isLocalFile():
+                    path = url.toLocalFile()
+                    if self._is_image_file(path):
+                        self._insert_image_markdown(path)
+                        event.acceptProposedAction()
+                        return
+        super().dropEvent(event)
+
+    @staticmethod
+    def _is_image_file(path: str) -> bool:
+        import os
+        ext = os.path.splitext(path)[1].lower()
+        return ext in ('.png', '.jpg', '.jpeg', '.gif', '.bmp',
+                       '.svg', '.webp', '.ico', '.tiff')
+
+    def _insert_image_markdown(self, path: str):
+        line, col = self.getCursorPosition()
+        md_text = f"![]({path})"
+        self.insertAt(md_text, line, col)
+        self.setCursorPosition(line, col + len(md_text))
+
+    # --- ==highlight== indicator ---
+
+    def _setup_highlight(self):
+        self._HL_INDIC = 8
+        self.indicatorDefine(
+            QsciScintilla.IndicatorStyle.RoundBoxIndicator,
+            self._HL_INDIC
+        )
+        self.setIndicatorForegroundColor(QColor(60, 179, 113, 80), self._HL_INDIC)
+        self.setIndicatorOutlineColor(QColor(60, 179, 113, 180), self._HL_INDIC)
+
+        self._highlight_timer = QTimer(self)
+        self._highlight_timer.setSingleShot(True)
+        self._highlight_timer.timeout.connect(self._apply_highlights)
+        self.textChanged.connect(lambda: self._highlight_timer.start(300))
+
+    def _apply_highlights(self):
+        import re
+        text = self.text()
+        self.clearIndicatorRange(0, 0, self.lines(), 0, self._HL_INDIC)
+        for match in re.finditer(r'==(.+?)==', text):
+            start = match.start()
+            end = match.end()
+            start_line, start_col = self.lineIndexFromPosition(start)
+            end_line, end_col = self.lineIndexFromPosition(end)
+            self.fillIndicatorRange(
+                start_line, start_col,
+                end_line, end_col,
+                self._HL_INDIC
+            )

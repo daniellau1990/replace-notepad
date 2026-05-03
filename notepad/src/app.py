@@ -7,7 +7,7 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QAction, QKeySequence, QFont
 
 from src.tab_manager import TabManager
-from src.autosave import AutoSave
+from src.autosave import AutoSave, DEFAULT_DIR
 from src.file_handler import FileHandler
 from src.find_replace import FindReplace
 from src.settings import Settings
@@ -32,6 +32,9 @@ class ClickablePathWidget(QWidget):
         self._layout.addWidget(self._prefix)
         self._layout.addWidget(self._path)
 
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._on_context_menu)
+
     def set_path(self, path: str, is_auto_save: bool = True):
         if path:
             if is_auto_save:
@@ -46,6 +49,25 @@ class ClickablePathWidget(QWidget):
             self._prefix.setText("")
             self._path.setText("(无文件)")
             self._path.setToolTip("")
+
+    def _on_context_menu(self, pos):
+        from PyQt6.QtWidgets import QMenu
+        menu = QMenu(self)
+        change_act = menu.addAction("修改默认保存路径...")
+        action = menu.exec(self.mapToGlobal(pos))
+        if action == change_act:
+            self._change_default_dir()
+
+    def _change_default_dir(self):
+        from PyQt6.QtWidgets import QFileDialog
+        from src.settings import Settings
+        s = Settings()
+        chosen = QFileDialog.getExistingDirectory(self, "选择默认保存路径", s.default_dir)
+        if chosen:
+            s.default_dir = chosen
+            parent = self.window()
+            if hasattr(parent, '_status'):
+                parent._status.showMessage(f"默认保存路径已设为 {chosen}", 4000)
 
 
 class MainWindow(QMainWindow):
@@ -259,8 +281,24 @@ class MainWindow(QMainWindow):
         path = self._tab_manager.current_path()
         if path:
             self._autosave.save_now()
-        else:
-            self._show_save_dialog()
+            self._status.showMessage(f"已保存 {os.path.basename(path)}", 3000)
+            return
+        # Unnamed file: auto-save to default dir without dialog
+        editor = self._tab_manager.current_editor()
+        if not editor:
+            return
+        content = editor.text()
+        if not content.strip():
+            self._status.showMessage("内容为空，未保存", 3000)
+            return
+        name = self._tab_manager.filename_candidate(editor) or "未命名"
+        safe_name = AutoSave._sanitize_filename(name)
+        default_dir = self._settings.default_dir
+        os.makedirs(default_dir, exist_ok=True)
+        new_path = os.path.join(default_dir, f"{safe_name}.md")
+        self._tab_manager.set_current_path(new_path)
+        self._autosave.save_to_path(content, new_path)
+        self._file_handler.add_recent(new_path)
 
     def _show_save_dialog(self):
         editor = self._tab_manager.current_editor()

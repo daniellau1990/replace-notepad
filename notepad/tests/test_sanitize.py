@@ -26,7 +26,7 @@ class TestSanitizeFilename:
         ("**bold**",      "bold"),
         ("*italic*",      "italic"),
         ("~~strike~~",    "strike"),
-        ("__underline__", "underline"),
+        ("__underline__", "__underline__"),
         ("`code`",        "code"),
         ("[link](url)",   "linkurl"),
         ("### Heading",   "Heading"),
@@ -39,8 +39,8 @@ class TestSanitizeFilename:
 
     EDGE_CASES = [
         ("",              "未命名"),
-        ("***___~~~",     "未命名"),
-        ("_" * 50,        "未命名"),
+        ("***___~~~",     "___"),
+        ("_" * 50,        "_" * 40),
         ("a" * 50,        "a" * 40),
         ("   spaced   ",  "spaced"),
         ("你好世界",      "你好世界"),
