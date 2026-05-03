@@ -12,6 +12,8 @@ from src.file_handler import FileHandler
 from src.find_replace import FindReplace
 from src.settings import Settings
 
+APP_VERSION = "v0.3.7"
+
 
 class ClickablePathWidget(QWidget):
     """Status bar widget showing file path, clickable to edit."""
@@ -261,6 +263,47 @@ class MainWindow(QMainWindow):
         find_act.triggered.connect(self._find_replace.toggle)
         edit_menu.addAction(find_act)
 
+        # Shortcut menu (display-only)
+        shortcut_menu = menubar.addMenu("快捷键(&K)")
+
+        _shortcuts = [
+            ("新建标签", "Ctrl+T"),
+            ("打开文件", "Ctrl+O"),
+            ("保存", "Ctrl+S"),
+            ("另存为", "Ctrl+Shift+S"),
+            ("退出", "Ctrl+Q"),
+            ("加粗", "Ctrl+B"),
+            ("查找/替换", "Ctrl+F"),
+            ("放大", "Ctrl+滚轮上"),
+            ("缩小", "Ctrl+滚轮下"),
+            ("关闭标签", "Ctrl+W"),
+        ]
+        for label, key in _shortcuts:
+            act = QAction(f"{label}    {key}", self)
+            act.setEnabled(False)
+            shortcut_menu.addAction(act)
+
+        # Format menu
+        format_menu = menubar.addMenu("格式(&O)")
+
+        font_act = QAction("字体(&F)...", self)
+        font_act.triggered.connect(self._show_font_dialog)
+        format_menu.addAction(font_act)
+
+        format_menu.addSeparator()
+
+        self._wrap_action = QAction("自动换行(&W)", self)
+        self._wrap_action.setCheckable(True)
+        self._wrap_action.setChecked(True)
+        self._wrap_action.triggered.connect(self._toggle_word_wrap)
+        format_menu.addAction(self._wrap_action)
+
+        # Version menu
+        version_menu = menubar.addMenu("版本(&V)")
+        version_act = QAction(APP_VERSION, self)
+        version_act.setEnabled(False)
+        version_menu.addAction(version_act)
+
     # --- File operations ---
 
     def _open_file(self):
@@ -346,6 +389,29 @@ class MainWindow(QMainWindow):
         editor = self._tab_manager.current_editor()
         if editor:
             editor.toggle_bold()
+
+    def _show_font_dialog(self):
+        editor = self._tab_manager.current_editor()
+        if not editor:
+            return
+        from src.font_dialog import FontSizeDialog
+        dlg = FontSizeDialog(self._settings.font_size, self)
+        if dlg.exec() == FontSizeDialog.DialogCode.Accepted:
+            new_size = dlg.font_size
+            self._settings.font_size = new_size
+            self._apply_font_size(new_size)
+
+    def _apply_font_size(self, size: int):
+        for _, editor, _, _ in self._tab_manager.all_editors():
+            font = editor.font()
+            font.setPointSize(size)
+            editor.setFont(font)
+
+    def _toggle_word_wrap(self, checked: bool):
+        from PyQt6.Qsci import QsciScintilla
+        mode = QsciScintilla.WrapMode.WrapWord if checked else QsciScintilla.WrapMode.WrapNone
+        for _, editor, _, _ in self._tab_manager.all_editors():
+            editor.setWrapMode(mode)
 
     # --- Find/Replace ---
 

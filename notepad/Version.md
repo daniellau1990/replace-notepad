@@ -1,7 +1,23 @@
 # Version History
 
 > 每个版本可通过 `git checkout <tag>` 回退
-> 当前最新: `git checkout v0.3.6`
+> 当前最新: `git checkout v0.3.7`
+
+## v0.3.7 (2026-05-03) [`git tag: v0.3.7`]
+- **12 项需求合集**:
+  1. 行间距缩小 (`setExtraAscent/Descent(0)`)
+  2. 空格灰底修复 (关闭 indentation guides)
+  3. 水平滚动条移除 (word wrap + SCI_SETHSCROLLBAR)
+  4. Ctrl+S 直接保存到默认路径，不弹对话框
+  5. 状态栏路径右击可修改默认保存目录
+  6. 文件名不过滤 `_` 下划线
+  7. 格式→字体：字号调节对话框 (SpinBox+Slider+预览)
+  8. 格式→自动换行：checkable 切换
+  9. 图片拖入编辑区插入 `![](path)` Markdown
+  10. 快捷键菜单（展示常用快捷键）
+  11. 版本菜单（显示 v0.3.7）
+  12. `==高亮==` 语法（绿色 RoundBox indicator）
+- bat 启动脚本优化：`pythonw.exe` + `start ""` 静默启动
 
 ## v0.3.6 (2026-04-30) [`git tag: v0.3.6`]
 - **修复（根因定位）**: 保存后重命名 .md 递增 bug — 根因是 `_on_double_click` 只对未命名文件剥离扩展名，保存后的文件重命名框展示带 `.md` 的完整文件名，导致扩展名叠加
