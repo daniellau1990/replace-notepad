@@ -30,11 +30,14 @@ class Editor(QsciScintilla):
         self.setCaretForegroundColor(QColor(0, 0, 0))
         self.setExtraAscent(0)
         self.setExtraDescent(0)
+        font_metrics = self.fontMetrics()
+        self.SendScintilla(2699, font_metrics.height())  # SCI_SETLINESPACING
 
     def _setup_auto_indent(self):
         self.setAutoIndent(True)
         self.setTabWidth(4)
         self.setIndentationGuides(False)
+        self.SendScintilla(QsciScintilla.SCI_SETVIEWWS, 0)
 
     def _setup_lexer(self):
         self._lexer = MarkdownLexer(self)
