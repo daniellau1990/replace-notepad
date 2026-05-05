@@ -383,6 +383,37 @@ class MainWindow(QMainWindow):
             self._autosave.save_to_path(content, path)
             self._file_handler.add_recent(path)
 
+    def _save_with_fallback(self, content: str, target_path: str) -> tuple:
+        r"""Try save to target_path. On failure, fallback to Documents\Notes\
+        with auto-increment naming. Returns (actual_path, warning_msg_or_None)."""
+        try:
+            with open(target_path, "w", encoding="utf-8") as f:
+                f.write(content)
+            return target_path, None
+        except OSError:
+            pass
+
+        stem = os.path.splitext(os.path.basename(target_path))[0]
+        safe_stem = AutoSave._sanitize_filename(stem)
+        fallback_dir = self._settings.default_dir
+        os.makedirs(fallback_dir, exist_ok=True)
+
+        counter = 1
+        while True:
+            suffix = f"{counter}" if counter > 1 else ""
+            fallback_path = os.path.join(fallback_dir, f"{safe_stem}{suffix}.md")
+            if not os.path.exists(fallback_path):
+                break
+            counter += 1
+
+        try:
+            with open(fallback_path, "w", encoding="utf-8") as f:
+                f.write(content)
+            return fallback_path, f"原路径保存失败，已保存到 {fallback_path}"
+        except OSError as e:
+            QMessageBox.warning(self, "保存失败", f"无法保存文件: {e}")
+            return None, None
+
     # --- Editor actions ---
 
     def _toggle_bold(self):
@@ -443,42 +474,37 @@ class MainWindow(QMainWindow):
 
     # --- Save confirmation on close ---
 
-    def _confirm_save_and_close(self, editor) -> bool:
-        """Returns True if should close, False if cancelled."""
+    def _auto_save_and_close(self, editor) -> bool:
+        """Silently save dirty editor and return True (should close).
+        Returns False only if both target and fallback save fail."""
         eid = id(editor)
         if not self._tab_manager.is_dirty(eid):
             return True
 
-        dialog = QMessageBox(self)
-        dialog.setWindowTitle("LiteNotepad")
-        dialog.setText("文件已修改，是否保存更改？")
-        save_btn = dialog.addButton("保存", QMessageBox.ButtonRole.AcceptRole)
-        cancel_btn = dialog.addButton("取消", QMessageBox.ButtonRole.RejectRole)
-        dialog.setDefaultButton(save_btn)
-        dialog.exec()
-
-        if dialog.clickedButton() == cancel_btn:
-            return False
-
-        # Save button
+        content = editor.text()
         path = self._tab_manager.path_for(eid)
         if path:
-            content = editor.text()
-            self._autosave.save_to_path(content, path)
+            target = path
         else:
-            # Unnamed file — show save dialog
-            default_name = self._tab_manager.filename_candidate(editor)
-            path, _ = QFileDialog.getSaveFileName(
-                self, "保存", default_name,
-                "Markdown (*.md);;文本文件 (*.txt);;所有文件 (*)"
-            )
-            if not path:
-                return False  # User cancelled save dialog
-            content = editor.text()
-            self._tab_manager.set_current_path(path)
-            self._autosave.save_to_path(content, path)
-            self._file_handler.add_recent(path)
-            self._last_save_dir = os.path.dirname(path)
+            name = self._tab_manager.filename_candidate(editor) or "未命名"
+            safe_name = AutoSave._sanitize_filename(name)
+            default_dir = self._settings.default_dir
+            os.makedirs(default_dir, exist_ok=True)
+            target = os.path.join(default_dir, f"{safe_name}.md")
+
+        actual_path, warning = self._save_with_fallback(content, target)
+        if actual_path is None:
+            return False
+
+        if actual_path != path:
+            self._tab_manager.set_current_path(actual_path)
+        if warning:
+            self._status.showMessage(warning, 5000)
+        else:
+            self._status.showMessage(f"已保存 {os.path.basename(actual_path)}", 3000)
+        self._tab_manager.mark_clean(eid)
+        self._tab_manager._update_tab_title(editor)
+        self._file_handler.add_recent(actual_path)
         return True
 
     def _close_tab(self, idx: int):
@@ -490,7 +516,7 @@ class MainWindow(QMainWindow):
         close_path = self._tab_manager.path_for(eid)
         if close_path:
             self._prev_editor_path = os.path.dirname(close_path)
-        if self._confirm_save_and_close(editor):
+        if self._auto_save_and_close(editor):
             self._tab_manager.remove_tab(idx)
             self._update_title()
 
@@ -499,7 +525,7 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         for eid, editor, path, dirty in self._tab_manager.all_editors():
             if dirty:
-                if not self._confirm_save_and_close(editor):
+                if not self._auto_save_and_close(editor):
                     event.ignore()
                     return
         self._settings.window_geometry = self.saveGeometry()
