@@ -125,15 +125,19 @@ class Editor(QsciScintilla):
 
         self._highlight_timer = QTimer(self)
         self._highlight_timer.setSingleShot(True)
-        self._highlight_timer.timeout.connect(self._apply_highlights)
+        self._highlight_timer.timeout.connect(self._apply_styles)
         self.textChanged.connect(lambda: self._highlight_timer.start(300))
+
+    def _apply_styles(self):
+        self._apply_highlights()
+        self._apply_bold()
 
     def _apply_highlights(self):
         import re
         text = self.text()
         self.clearIndicatorRange(0, 0, self.lines() - 1,
                                  self.lineLength(self.lines() - 1), self._HL_INDIC)
-        for match in re.finditer(r'==(.+?)==', text):
+        for match in re.finditer(r'==(.{2,}?)==', text):
             start = match.start()
             end = match.end()
             start_line, start_col = self.lineIndexFromPosition(start)
@@ -143,3 +147,13 @@ class Editor(QsciScintilla):
                 end_line, end_col,
                 self._HL_INDIC
             )
+
+    def _apply_bold(self):
+        import re
+        text = self.text()
+        for match in re.finditer(r'\*\*(.+?)\*\*', text):
+            start = match.start() + 2
+            end = match.end() - 2
+            length = end - start
+            self.SendScintilla(QsciScintilla.SCI_STARTSTYLING, start, 0x1f)
+            self.SendScintilla(QsciScintilla.SCI_SETSTYLING, length, 2)

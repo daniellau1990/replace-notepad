@@ -78,9 +78,8 @@ class MarkdownLexer(QsciLexerMarkdown):
         # Horizontal rule
         self._set_style(17, 11, False, False, (200, 200, 200), (255, 255, 255))
 
-        # Link
-        self._set_style(18, 11, False, False, (0, 100, 200), (255, 255, 255),
-                        underline=True)
+        # Link (neutral — no blue/underline to prevent style bleed)
+        self._set_style(18, 11, False, False, (30, 30, 30), (255, 255, 255))
 
         # Code between backticks
         self._set_style(19, 11, False, False, (200, 50, 50), (240, 240, 240))

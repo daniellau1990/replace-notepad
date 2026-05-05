@@ -12,7 +12,7 @@ from src.file_handler import FileHandler
 from src.find_replace import FindReplace
 from src.settings import Settings
 
-APP_VERSION = "v0.3.11"
+APP_VERSION = "v0.3.12"
 
 
 class ClickablePathWidget(QWidget):

@@ -64,11 +64,10 @@ class TestMarkdownLexer:
 
     # --- Link ---
 
-    def test_link_is_blue(self, qapp):
+    def test_link_is_neutral(self, qapp):
         lexer = MarkdownLexer()
         color = lexer.color(18)  # Link = style 18
-        assert color.blue() > 150
-        assert color.red() < 100
+        assert color.blue() < 100  # neutral, not blue to prevent style bleed
 
     # --- Default ---
 
