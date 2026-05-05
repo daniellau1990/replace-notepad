@@ -12,7 +12,7 @@ from src.file_handler import FileHandler
 from src.find_replace import FindReplace
 from src.settings import Settings
 
-APP_VERSION = "v0.3.12"
+APP_VERSION = "v0.3.13"
 
 
 class ClickablePathWidget(QWidget):
@@ -34,8 +34,17 @@ class ClickablePathWidget(QWidget):
         self._layout.addWidget(self._prefix)
         self._layout.addWidget(self._path)
 
+        self._path.installEventFilter(self)
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self._on_context_menu)
+
+    def eventFilter(self, obj, event):
+        from PyQt6.QtCore import QEvent
+        if obj is self._path and event.type() == QEvent.Type.MouseButtonPress:
+            if event.button() == Qt.MouseButton.LeftButton:
+                self._change_default_dir()
+                return True
+        return super().eventFilter(obj, event)
 
     def set_path(self, path: str, is_auto_save: bool = True):
         if path:
@@ -243,6 +252,12 @@ class MainWindow(QMainWindow):
 
         file_menu.addSeparator()
 
+        default_editor_act = QAction("设为默认编辑器(&D)", self)
+        default_editor_act.triggered.connect(self._set_as_default_editor)
+        file_menu.addAction(default_editor_act)
+
+        file_menu.addSeparator()
+
         exit_act = QAction("退出(&X)", self)
         exit_act.setShortcut(QKeySequence("Ctrl+Q"))
         exit_act.triggered.connect(self.close)
@@ -362,6 +377,26 @@ class MainWindow(QMainWindow):
             self._tab_manager.set_current_path(path)
             self._autosave.save_to_path(content, path)
             self._file_handler.add_recent(path)
+
+    def _set_as_default_editor(self):
+        """Register LiteNotepad as default editor for .md and .txt files in Windows."""
+        import sys
+        import winreg
+        app_path = sys.executable
+        script = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'main.py')
+        # Build command: pythonw main.py "%1"
+        cmd = f'"{app_path}" "{script}" "%1"'
+        try:
+            for ext in ['.md', '.txt']:
+                key_path = f'Software\\Classes\\{ext}'
+                with winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path) as k:
+                    winreg.SetValueEx(k, '', 0, winreg.REG_SZ, 'LiteNotepad')
+                prog_key = f'Software\\Classes\\LiteNotepad\\shell\\open\\command'
+                with winreg.CreateKey(winreg.HKEY_CURRENT_USER, prog_key) as k:
+                    winreg.SetValueEx(k, '', 0, winreg.REG_SZ, cmd)
+            self._status.showMessage("已设为默认编辑器", 3000)
+        except OSError as e:
+            QMessageBox.warning(self, "设置失败", f"无法写入注册表: {e}")
 
     def _save_as_file(self):
         editor = self._tab_manager.current_editor()
