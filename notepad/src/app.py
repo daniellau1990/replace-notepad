@@ -437,6 +437,9 @@ class MainWindow(QMainWindow):
             font = editor.font()
             font.setPointSize(size)
             editor.setFont(font)
+            lexer = editor.lexer()
+            if lexer and hasattr(lexer, 'update_font_size'):
+                lexer.update_font_size(size)
 
     def _toggle_word_wrap(self, checked: bool):
         from PyQt6.Qsci import QsciScintilla

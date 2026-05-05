@@ -96,3 +96,10 @@ class MarkdownLexer(QsciLexerMarkdown):
         self.setFont(font, index)
         self.setColor(QColor(*fg), index)
         self.setPaper(QColor(*bg), index)
+
+    def update_font_size(self, size: int):
+        """Reapply font size to all style definitions (0-19)."""
+        for idx in range(20):
+            font = self.font(idx)
+            font.setPointSize(size)
+            self.setFont(font, idx)

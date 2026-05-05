@@ -117,7 +117,7 @@ class Editor(QsciScintilla):
             QsciScintilla.IndicatorStyle.RoundBoxIndicator,
             self._HL_INDIC
         )
-        self.setIndicatorForegroundColor(QColor(60, 179, 113, 80), self._HL_INDIC)
+        self.setIndicatorForegroundColor(QColor(60, 179, 113, 160), self._HL_INDIC)
         self.setIndicatorOutlineColor(QColor(60, 179, 113, 180), self._HL_INDIC)
 
         self._highlight_timer = QTimer(self)
@@ -128,7 +128,8 @@ class Editor(QsciScintilla):
     def _apply_highlights(self):
         import re
         text = self.text()
-        self.clearIndicatorRange(0, 0, self.lines(), 0, self._HL_INDIC)
+        self.clearIndicatorRange(0, 0, self.lines() - 1,
+                                 self.lineLength(self.lines() - 1), self._HL_INDIC)
         for match in re.finditer(r'==(.+?)==', text):
             start = match.start()
             end = match.end()
