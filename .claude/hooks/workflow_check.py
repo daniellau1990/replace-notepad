@@ -24,6 +24,35 @@ ALWAYS_ALLOWED_FILES = {
 }
 
 
+def get_app_version() -> str:
+    """Extract APP_VERSION from notepad/src/app.py."""
+    app_py = PROJECT_ROOT / "notepad" / "src" / "app.py"
+    if not app_py.exists():
+        return ""
+    try:
+        content = app_py.read_text(encoding="utf-8")
+        import re
+        m = re.search(r'APP_VERSION\s*=\s*"([^"]+)"', content)
+        return m.group(1) if m else ""
+    except Exception:
+        return ""
+
+
+def check_version_md() -> bool:
+    """Return True if notepad/Version.md contains current APP_VERSION."""
+    current = get_app_version()
+    if not current:
+        return True  # can't check, allow
+    version_md = PROJECT_ROOT / "notepad" / "Version.md"
+    if not version_md.exists():
+        return False
+    try:
+        content = version_md.read_text(encoding="utf-8")
+        return current in content
+    except Exception:
+        return True
+
+
 def has_plan_for_today() -> bool:
     if not PLANS_DIR.exists():
         return False
@@ -117,6 +146,7 @@ def main():
     except (json.JSONDecodeError, Exception):
         sys.exit(0)
 
+    tool_name = hook_input.get("tool_name", "")
     paths = get_affected_paths(hook_input)
 
     if not paths:
@@ -127,13 +157,12 @@ def main():
     if not source_paths:
         sys.exit(0)
 
-    if has_plan_for_today():
-        sys.exit(0)
-
-    today = date.today().isoformat()
-    msg = f"""
+    # Gate 1: plan file existence
+    if not has_plan_for_today():
+        today = date.today().isoformat()
+        msg = f"""
 ============================================================
- WORKFLOW CHECK: Action BLOCKED
+ WORKFLOW CHECK: Action BLOCKED (no plan file)
 ============================================================
  Source files affected: {', '.join(source_paths[:5])}
  No plan file found in: {PLANS_DIR}
@@ -150,8 +179,32 @@ def main():
  See CLAUDE.md "MANDATORY WORKFLOW" section for details.
 ============================================================
 """
-    print(msg, file=sys.stderr)
-    sys.exit(2)
+        print(msg, file=sys.stderr)
+        sys.exit(2)
+
+    # Gate 2: Version.md consistency (git commit only)
+    if tool_name == "Bash" and "git commit" in hook_input.get("tool_input", {}).get("command", ""):
+        if not check_version_md():
+            current = get_app_version()
+            msg = f"""
+============================================================
+ WORKFLOW CHECK: Action BLOCKED (Version.md out of sync)
+============================================================
+ Current APP_VERSION: {current}
+ Version.md does NOT contain this version.
+
+ Before committing, update notepad/Version.md:
+   - Add a new ## {current} section with change summary
+   - Keep the format consistent with existing entries
+   - The version string "{current}" must appear in the file
+
+ See CLAUDE.md "其他规则" section.
+============================================================
+"""
+            print(msg, file=sys.stderr)
+            sys.exit(2)
+
+    sys.exit(0)
 
 
 if __name__ == "__main__":
