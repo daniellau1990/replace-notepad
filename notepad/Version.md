@@ -1,7 +1,37 @@
 # Version History
 
 > 每个版本可通过 `git checkout <tag>` 回退
-> 当前最新: `git checkout v0.3.8`
+> 当前最新: `git checkout v0.3.13`
+
+## v0.3.13 (2026-05-06) [`git tag: v0.3.13`]
+- **Phase 4 新功能**:
+  1. 状态栏路径左键单击弹出目录选择对话框，修改默认保存路径
+  2. 文件菜单新增"设为默认编辑器"——写入 HKCU 注册表关联 .md/.txt
+  3. 确认标签页无硬性数量限制
+- CLAUDE.md 更新: 日志记录规则、苏格拉底五问调试法、测试原则
+
+## v0.3.12 (2026-05-05) [`git tag: v0.3.12`]
+- **Phase 3 编辑器缺陷修复**:
+  1. 修复链接样式泄漏——style 18 蓝色+下划线改为中性黑色
+  2. 修复绿底漂移——高亮正则改为 `==(.{2,}?)==` 跳过 `== ==` 误匹配
+  3. 修复中文加粗失效——`_apply_bold()` 用 SCI_STARTSTYLING style 2 绕过 lexer 限制
+- 更新测试: `test_link_is_blue` → `test_link_is_neutral`
+
+## v0.3.11 (2026-05-05) [`git tag: v0.3.11`]
+- **Phase 2 排版修复**:
+  1. 行间距压缩——SCI_SETLINESPACING 设为字体像素高度，匹配记事本紧凑行距
+  2. 空格灰色背景修复——SCI_SETVIEWWS=0 关闭空白字符可见标记
+
+## v0.3.10 (2026-05-05) [`git tag: v0.3.10`]
+- **Phase 1 核心修复**:
+  1. 字体大小对话框生效——MarkdownLexer 新增 `update_font_size()`，_apply_font_size 同步更新全部 20 个 style
+  2. 高亮 `==text==` 可见——indicator alpha 从 80 提升到 160，修正 clearIndicatorRange 边界
+
+## v0.3.9 (2026-05-05) [`git tag: v0.3.9`]
+- **关闭标签静默自动保存**:
+  - `_confirm_save_and_close` 替换为 `_auto_save_and_close`，关闭标签不弹确认对话框
+  - 新增 `_save_with_fallback`——保存失败自动 fallback 到 Documents\Notes\ 并递增编号
+  - 关闭窗口同样静默保存所有脏标签
 
 ## v0.3.8 (2026-05-03) [`git tag: v0.3.8`]
 - **Guardrail 工作流强制执行**:
