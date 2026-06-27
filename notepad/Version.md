@@ -1,7 +1,14 @@
 # Version History
 
 > 每个版本可通过 `git checkout <tag>` 回退
-> 当前最新: `git checkout v0.3.15`
+> 当前最新: `git checkout v0.3.16`
+
+## v0.3.16 (2026-06-28)
+
+- **Fix**: 修复 _ScrollTabBar 左箭头单击崩溃——`drawPolygon(QPoint)` → `drawPolygon(QPolygon)`
+- **Fix**: `_tabs_overflow()` 增加 rect 有效性防御检查，防止动画过渡态异常退出
+- **Fix**: `_scroll()` 中 ensureVisible 包装 try-except + 日志
+- **New**: 新增 `logs/runtime.log` 运行时日志，捕获未处理异常堆栈
 
 ## v0.3.15 (2026-06-27)
 

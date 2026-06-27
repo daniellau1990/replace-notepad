@@ -1,9 +1,10 @@
 import os
-from PyQt6.QtWidgets import QTabWidget, QLineEdit, QTabBar, QStyle, QStyleOptionTab
+from PyQt6.QtWidgets import QTabWidget, QLineEdit, QTabBar
 from PyQt6.QtCore import Qt, pyqtSignal, QRect, QPoint
-from PyQt6.QtGui import QPainter, QColor
+from PyQt6.QtGui import QPainter, QColor, QPolygon
 
 from src.editor import Editor
+from src.logger import log
 
 
 class _ScrollTabBar(QTabBar):
@@ -16,10 +17,17 @@ class _ScrollTabBar(QTabBar):
         self.setUsesScrollButtons(True)
 
     def _tabs_overflow(self) -> bool:
-        if self.count() == 0:
+        n = self.count()
+        w = self.width()
+        if n == 0 or w <= 0:
             return False
-        total = sum(self.tabRect(i).width() for i in range(self.count()))
-        return total > self.width()
+        total = 0
+        for i in range(n):
+            r = self.tabRect(i)
+            if not r.isValid() or r.width() < 0:
+                continue
+            total += r.width()
+        return total > w
 
     def _left_buttons_rect(self) -> QRect:
         return QRect(0, 0, self.BTN_W * 2, self.height())
@@ -27,23 +35,23 @@ class _ScrollTabBar(QTabBar):
     # --- scroll helpers ---
 
     def _first_visible_tab(self) -> int:
+        w = self.width()
         for i in range(self.count()):
             r = self.tabRect(i)
-            if r.right() > 0:
-                return i
-        return self.count() - 1
-
-    def _last_visible_tab(self) -> int:
-        for i in range(self.count() - 1, -1, -1):
-            r = self.tabRect(i)
-            if r.left() < self.width():
+            if r.isValid() and r.right() > 0 and r.left() < w:
                 return i
         return 0
 
     def _scroll(self, delta: int):
-        """Scroll tab view by delta tabs (negative=left, positive=right)."""
-        target = max(0, min(self.count() - 1, self._first_visible_tab() + delta))
-        self.ensureVisible(target)
+        n = self.count()
+        if n == 0:
+            return
+        target = max(0, min(n - 1, self._first_visible_tab() + delta))
+        try:
+            self.ensureVisible(target)
+        except Exception:
+            log("ERROR", f"_scroll ensureVisible({target}) 失败")
+            log("ERROR", f"  count={n} delta={delta} first_visible={self._first_visible_tab()}")
 
     # --- paint ---
 
@@ -56,23 +64,24 @@ class _ScrollTabBar(QTabBar):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         r = self._left_buttons_rect()
 
-        # Background
         painter.fillRect(r, QColor("#f0f0f0"))
-        # Separator line
         painter.setPen(QColor("#d0d0d0"))
         painter.drawLine(r.topRight(), r.bottomRight())
 
-        # Left arrow (scroll toward earlier tabs)
         painter.setPen(QColor("#555"))
-        cx, cy = self.BTN_W // 2, r.height() // 2
-        painter.drawPolygon(
-            QPoint(cx + 4, cy - 6), QPoint(cx + 4, cy + 6), QPoint(cx - 3, cy)
-        )
-        # Right arrow (scroll toward later tabs)
-        cx += self.BTN_W
-        painter.drawPolygon(
-            QPoint(cx - 4, cy - 6), QPoint(cx - 4, cy + 6), QPoint(cx + 3, cy)
-        )
+        cy = r.height() // 2
+
+        # Left arrow (scroll toward earlier tabs) — triangle pointing left
+        left_arrow = QPolygon([
+            QPoint(13, cy - 6), QPoint(13, cy + 6), QPoint(6, cy),
+        ])
+        painter.drawPolygon(left_arrow)
+
+        # Right arrow (scroll toward later tabs) — triangle pointing right
+        right_arrow = QPolygon([
+            QPoint(23, cy - 6), QPoint(23, cy + 6), QPoint(30, cy),
+        ])
+        painter.drawPolygon(right_arrow)
 
         painter.end()
 
@@ -81,10 +90,10 @@ class _ScrollTabBar(QTabBar):
     def mousePressEvent(self, event):
         if self._tabs_overflow():
             x = event.pos().x()
-            if x < self.BTN_W:           # left-scroll button
+            if x < self.BTN_W:
                 self._scroll(-1)
                 return
-            elif x < self.BTN_W * 2:     # right-scroll button
+            elif x < self.BTN_W * 2:
                 self._scroll(1)
                 return
         super().mousePressEvent(event)

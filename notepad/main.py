@@ -6,9 +6,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from PyQt6.QtWidgets import QApplication
 from src.app import MainWindow
+from src.logger import setup_excepthook, log
 
 
 def main():
+    setup_excepthook()
+    log("INFO", "=== LiteNotepad 启动 ===")
+
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
     app.setApplicationName("LiteNotepad")
