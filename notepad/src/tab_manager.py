@@ -20,6 +20,7 @@ class _ScrollTabBar(QTabBar):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setUsesScrollButtons(True)
+        self._in_native_click = False  # re-entrancy guard
 
     def _tabs_overflow(self) -> bool:
         n = self.count()
@@ -48,8 +49,12 @@ class _ScrollTabBar(QTabBar):
         release = QMouseEvent(QEvent.Type.MouseButtonRelease, pos, pos,
                               Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton,
                               Qt.KeyboardModifier.NoModifier)
-        QApplication.sendEvent(self, press)
-        QApplication.sendEvent(self, release)
+        self._in_native_click = True
+        try:
+            QApplication.sendEvent(self, press)
+            QApplication.sendEvent(self, release)
+        finally:
+            self._in_native_click = False
 
     def _scroll_left(self):
         """Scroll tabs RIGHT to show earlier (hidden-left) tabs."""
@@ -103,6 +108,9 @@ class _ScrollTabBar(QTabBar):
         return -1
 
     def mousePressEvent(self, event):
+        if self._in_native_click:
+            super().mousePressEvent(event)
+            return
         btn = self._in_left_buttons(event.pos().x())
         if btn == 0:
             self._scroll_left()

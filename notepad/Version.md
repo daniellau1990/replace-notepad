@@ -1,7 +1,12 @@
 # Version History
 
 > 每个版本可通过 `git checkout <tag>` 回退
-> 当前最新: `git checkout v0.3.19`
+> 当前最新: `git checkout v0.3.20`
+
+## v0.3.20 (2026-06-28)
+
+- **Fix**: v0.3.19 合成事件导致的无限递归崩溃——添加 `_in_native_click` 防重入守卫
+- 功能测试验证: 右按钮 tab0 0→-36px, 左按钮 -36→0px, 无崩溃
 
 ## v0.3.19 (2026-06-28)
 
