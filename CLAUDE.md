@@ -48,9 +48,10 @@ pip freeze > requirements.txt
 | 3 | 制定计划 | `superpowers-skills-writing-plans` | `docs/plans/YYYY-MM-DD-<feature>.md` |
 | 4 | **人工审查** | — | 用户批准计划 |
 | 5 | TDD 实现 | `mattpocock-skills-tdd` + `superpowers-skills-subagent-driven-development` | 测试先行，逐任务实现 |
-| 6 | 代码审查 | `mattpocock-skills-review` | 审查通过，无遗留问题 |
-| 7 | 回归测试 | `pytest tests/` | 全部绿色，旧功能无退化 |
-| 8 | 归档 + 版本 | `openspec-archive-change` + git commit + 更新 Version.md | 版本锚点，知识库更新 |
+| 6 | 功能测试 | QApplication 功能测试（UI 改动强制） | 功能验证通过 |
+| 7 | 代码审查 | `mattpocock-skills-review`（见代码审查清单） | 审查通过 |
+| 8 | 回归测试 | `pytest tests/` | 全部绿色，旧功能无退化 |
+| 9 | 归档 + 版本 | `openspec-archive-change` + git commit + 更新 Version.md | 版本锚点，知识库更新 |
 
 ---
 
@@ -59,14 +60,46 @@ pip freeze > requirements.txt
 | # | 步骤 | 技能 | 产出 |
 |---|------|------|------|
 | 1 | 需求界定 | `mattpocock-skills-grilling` | 精确问题现象和边界 |
-| 2 | 诊断根因 | `mattpocock-skills-diagnosing-bugs` | 根因确认（非猜测） |
+| 2 | 诊断根因 | `mattpocock-skills-diagnosing-bugs` + `debug-hypothesis` | 根因确认 + DEBUG.md |
 | 3 | 制定计划 | `superpowers-skills-writing-plans` | 修复计划 |
 | 4 | **人工审查** | — | 用户批准 |
 | 5 | TDD 修复 | `mattpocock-skills-tdd`（先写复现测试 → 修复 → 验证） | 测试 + 修复 |
-| 6 | 回归测试 | `pytest tests/` | 全部绿色 |
-| 7 | 归档 + 版本 | git commit + 更新 Version.md | 版本锚点 |
+| 6 | 功能测试 | QApplication 功能测试（UI 改动强制，见测试原则） | 功能验证通过 |
+| 7 | 代码审查 | `mattpocock-skills-review` | 审查通过 |
+| 8 | 回归测试 | `pytest tests/` | 全部绿色 |
+| 9 | 归档 + 版本 | git commit + 更新 Version.md | 版本锚点 |
 
-**Bug Fix 可跳过步骤**：如果改动 ≤2 行且根因一目了然，可以跳过 Step 2（诊断）和 Step 3（计划），直接从 Step 1 到 Step 4（确认）到 Step 5（修复）。
+**Bug Fix 硬规则**：
+- Step 2（诊断）**不可跳过**——根源未知的修复 = 猜測修 bug。改动用 ≤2 行的极端情况可跳过 Step 3（计划），但不能跳过诊断
+- Step 6（功能测试）**UI 改动强制**——v0.3.15–v0.3.19 教训：pytest 全绿 ≠ 功能正常
+
+---
+
+### 调试触发规则（v0.3.20 六版迭代教训）
+
+**修复失败一次，立即停止直觉修 bug，调用以下 skills：**
+
+| 顺序 | Skill | 作用 |
+|------|-------|------|
+| 1 | `debug-hypothesis` | Anti-Bulldozer：Observe→Hypothesize→Experiment→Conclude，写入 DEBUG.md，每实验 ≤5 行 |
+| 2 | `mattpocock-skills-diagnosing-bugs` | Phase 1：建 feedback loop——一个能复现 bug 的自动化命令 |
+| 3 | `my-systematic-debugging` | 反转假设 + 隔离测试 + 5-why |
+
+**硬规则**：
+- 修复失败 ≥2 次 → **禁止再写修复代码**，必须先过 debug-hypothesis Phase 1（写 DEBUG.md + 复现）
+- 每个实验 **≤5 行**，验证后 revert，再写正式修复
+- 正式修复前 **必须有 feedback loop**（一条命令就能测出修好没修好）
+
+### 代码审查清单
+
+审查时必须逐项确认：
+
+- [ ] **功能正确**：实际运行修复后的代码，验证用户报告的 bug 不再出现（不只是"代码看起来对"）
+- [ ] **反馈循环**：审查者能跑一条命令复现修复效果（pytest / 功能测试 / 手动步骤）
+- [ ] **无回归**：pytest tests/ 全部绿色
+- [ ] **无过度修改**：改动只涉及修复所需的代码，没有顺手重构无关模块
+- [ ] **日志可查**：如涉及文件 I/O 或异常路径，logs/runtime.log 记录了关键操作
+- [ ] **根因已记录**：commit message 包含五问根因，不只是"修复了 XX"
 
 ---
 
@@ -245,6 +278,42 @@ For multi-step tasks, state a brief plan:
 - **还原实际环境**：使用相同分辨率（本项目 1920×1080）、相同 DPI、相同字体环境
 - **端到端验证**：每次改完代码后启动 app，亲自操作一遍完整流程
 - **边界情境**：多标签、长文件名、大文件、特殊字符、网络路径等实际使用场景
+
+### 功能测试（强制 — v0.3.20 教训）
+
+**任何涉及 UI 交互的改动（按钮、滚动、事件处理、绘制），必须写 QApplication 功能测试。**
+
+pytest 单元测试只验证 Python 逻辑，**无法测试 QPainter 绘制、QTabBar 滚动、鼠标事件链**。
+
+功能测试模板：
+```python
+app = QApplication(sys.argv)           # 必须有 QApplication
+widget = create_widget()               # 创建被测控件
+widget.show(); app.processEvents()     # 渲染
+# 模拟用户操作
+QApplication.sendEvent(widget, QMouseEvent(...))
+app.processEvents()
+# 断言实际行为
+assert widget.tabRect(0).x() == expected
+```
+
+**v0.3.15–v0.3.19 六版迭代根因**：每次只跑 pytest（57 个单元测试全过），从未写功能测试验证实际滚动。mattpocock-skills-diagnosing-bugs Phase 1："没有 tight feedback loop 就不准进入 Phase 2。"
+
+### 三层测试体系
+
+| 层级 | 何时执行 | 验证范围 | 命令 |
+|------|---------|---------|------|
+| **单元测试** | 每次改动后 | Python 逻辑正确性 | `pytest tests/ -v` |
+| **功能测试** | UI 改动后（强制） | Qt 绘制/事件/滚动实际行为 | 自定义 QApplication 脚本 |
+| **用户场景测试** | commit 前（强制） | 用户实际操作流程 | 启动 app 手动验证 |
+
+**每种测试覆盖不同的失败模式**，不可互相替代：
+
+| 通过 | 仍可能失败 |
+|------|-----------|
+| pytest 57/57 | QPainter 绘制崩溃（v0.3.15） |
+| pytest + 功能测试 | 按钮与原型样式不一致（v0.3.17） |
+| 全部自动化测试 | 用户屏幕分辨率下按钮不显示（UX） |
 
 ### 测试清单
 
