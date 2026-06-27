@@ -12,7 +12,7 @@ from src.file_handler import FileHandler
 from src.find_replace import FindReplace
 from src.settings import Settings
 
-APP_VERSION = "v0.3.13"
+APP_VERSION = "v0.3.14"
 
 
 class ClickablePathWidget(QWidget):
@@ -40,7 +40,7 @@ class ClickablePathWidget(QWidget):
 
     def eventFilter(self, obj, event):
         from PyQt6.QtCore import QEvent
-        if obj is self._path and event.type() == QEvent.Type.MouseButtonPress:
+        if obj is self._path and event.type() == QEvent.Type.MouseButtonDblClick:
             if event.button() == Qt.MouseButton.LeftButton:
                 self._change_default_dir()
                 return True
@@ -62,11 +62,16 @@ class ClickablePathWidget(QWidget):
             self._path.setToolTip("")
 
     def _on_context_menu(self, pos):
-        from PyQt6.QtWidgets import QMenu
+        from PyQt6.QtWidgets import QMenu, QApplication
         menu = QMenu(self)
+        copy_act = menu.addAction("全选并复制")
+        menu.addSeparator()
         change_act = menu.addAction("修改默认保存路径...")
         action = menu.exec(self.mapToGlobal(pos))
-        if action == change_act:
+        if action == copy_act:
+            self._path.setSelection(0, len(self._path.text()))
+            QApplication.clipboard().setText(self._path.text())
+        elif action == change_act:
             self._change_default_dir()
 
     def _change_default_dir(self):
@@ -182,9 +187,6 @@ class MainWindow(QMainWindow):
                 color: white;
             }
         """)
-
-        # Default tab
-        self._new_tab()
 
         # Restore geometry
         geo = self._settings.window_geometry
@@ -422,7 +424,7 @@ class MainWindow(QMainWindow):
         r"""Try save to target_path. On failure, fallback to Documents\Notes\
         with auto-increment naming. Returns (actual_path, warning_msg_or_None)."""
         try:
-            with open(target_path, "w", encoding="utf-8") as f:
+            with open(target_path, "w", encoding="utf-8", newline='') as f:
                 f.write(content)
             return target_path, None
         except OSError:
@@ -442,7 +444,7 @@ class MainWindow(QMainWindow):
             counter += 1
 
         try:
-            with open(fallback_path, "w", encoding="utf-8") as f:
+            with open(fallback_path, "w", encoding="utf-8", newline='') as f:
                 f.write(content)
             return fallback_path, f"原路径保存失败，已保存到 {fallback_path}"
         except OSError as e:

@@ -24,74 +24,57 @@ pip freeze > requirements.txt
 
 ---
 
-## MANDATORY WORKFLOW — ENFORCED BY HOOKS
+## 开发工作流
 
-> **PreToolUse hooks will physically BLOCK writes to `notepad/src/**/*.py` and `git commit`
-> commands if no plan file exists for today at `docs/plans/YYYY-MM-DD-<feature>.md`.
-> This is NOT optional. You MUST complete Steps 1-4 before writing code.**
+核心原则: **实现 A 功能，绝不破坏 B 功能。** 流程按任务类型分两轨。
 
-每次开发任务按以下步骤执行，核心目标：**实现 A 功能，绝不破坏 B 功能**。
+### 任务分类
 
-### 0. 准备 — 读取上下文
-- 任务开始前，AI 必须读取 `openspec/specs/` 中相关的 spec 文件
-- 了解已有行为契约，标记"不能破坏"的边界
-- [ ] 检查点：spec 已读取
+| 类型 | 特征 | 示例 |
+|------|------|------|
+| **Feature** | 新功能、跨模块改动、架构调整 | 添加高亮语法、重构保存逻辑、新增面板 |
+| **Bug Fix** | 修复缺陷、单文件小改、样式修正 | 修复 CRLF 行间距 bug、修正字体颜色 |
 
-### 1. 需求澄清 → `superpowers-skills-brainstorming`
-- 任何修改前，先用 brainstorm 把需求聊透
-- 确认：要做什么、不做什么、边界在哪
-- [ ] 检查点：需求边界已明确
+判断标准: 改动涉及 >2 个源文件 或 新增行为定义 → Feature；否则 → Bug Fix。
 
-### 2. 规格先行 → `/opsx:propose`
-- 生成 proposal.md + delta spec + design.md + tasks.md
-- delta spec 与主 spec 对比，冲突时警告
-- [ ] 检查点：proposal 已生成
+---
 
-### 3. 人工审查
-- 用户确认 proposal.md 的需求和方向
-- **唯一的人工卡点**：方向错了当场纠正，不返工
-- [ ] 检查点：用户已批准
+### Feature 轨道
 
-### 4. 制定计划 → `superpowers-skills-writing-plans` **[GATE — HOOK ENFORCED]**
-- 基于 design 拆解原子 TDD 任务
-- 计划保存到 `docs/plans/YYYY-MM-DD-<feature>.md`
-- 用户明确同意后方可执行
-- [ ] **检查点：计划文件已存在于 docs/plans/ ← 此后才能写代码**
+| # | 步骤 | 技能 | 产出 |
+|---|------|------|------|
+| 1 | 需求澄清 | `mattpocock-skills-grilling` | 明确的需求边界和验收标准 |
+| 2 | 领域建模 | `mattpocock-skills-domain-modeling` | 领域术语、模块关系、架构决策 |
+| 3 | 制定计划 | `superpowers-skills-writing-plans` | `docs/plans/YYYY-MM-DD-<feature>.md` |
+| 4 | **人工审查** | — | 用户批准计划 |
+| 5 | TDD 实现 | `mattpocock-skills-tdd` + `superpowers-skills-subagent-driven-development` | 测试先行，逐任务实现 |
+| 6 | 代码审查 | `mattpocock-skills-review` | 审查通过，无遗留问题 |
+| 7 | 回归测试 | `pytest tests/` | 全部绿色，旧功能无退化 |
+| 8 | 归档 + 版本 | `openspec-archive-change` + git commit + 更新 Version.md | 版本锚点，知识库更新 |
 
-### 5. 执行计划 → `superpowers-skills-subagent-driven-development`
-- 每个子代理执行前**必须读取 `openspec/specs/`** 获取上下文
-- 逐任务执行，每完成一个 task 即 commit
+---
 
-### 6. 测试验证（两层）
-- **TDD（`superpowers-skills-test-driven-development`）**：
-  写新代码前先写测试，保证新功能正确
-- **全量回归（`pytest tests/`）**：
-  所有改动完成后跑全部测试，保证旧功能没坏
-- 有任何一个 FAIL → 修好再继续，不到下一步
+### Bug Fix 轨道
 
-### 7. 归档记忆 → `/opsx:archive`
-- delta spec 合并到 `openspec/specs/`，知识库自更新
-- 下一次 AI 任务自动读取，不再遗忘
+| # | 步骤 | 技能 | 产出 |
+|---|------|------|------|
+| 1 | 需求界定 | `mattpocock-skills-grilling` | 精确问题现象和边界 |
+| 2 | 诊断根因 | `mattpocock-skills-diagnosing-bugs` | 根因确认（非猜测） |
+| 3 | 制定计划 | `superpowers-skills-writing-plans` | 修复计划 |
+| 4 | **人工审查** | — | 用户批准 |
+| 5 | TDD 修复 | `mattpocock-skills-tdd`（先写复现测试 → 修复 → 验证） | 测试 + 修复 |
+| 6 | 回归测试 | `pytest tests/` | 全部绿色 |
+| 7 | 归档 + 版本 | git commit + 更新 Version.md | 版本锚点 |
 
-### 8. 版本锚点 → git
-- `git commit` + 更新 `Version.md`
-- `git tag vX.Y.Z`：出问题可精确回退
+**Bug Fix 可跳过步骤**：如果改动 ≤2 行且根因一目了然，可以跳过 Step 2（诊断）和 Step 3（计划），直接从 Step 1 到 Step 4（确认）到 Step 5（修复）。
 
-### 9. 调试（按需） → `my-systematic-debugging` + `superpowers-skills-systematic-debugging`
-- 遇到 bug 时，同时调用两个 skill 定位根因
-- 先查根因，再走 ②→⑧ 修复流程
+---
 
-### QUICK COMPLIANCE CHECK
+### HOOK 保护
 
-在写代码之前，自查以下清单（全部 YES 才能动手）：
+PreToolUse hook 仅在 `git commit` 时检查 **Version.md 是否包含当前 APP_VERSION**，不一致则阻断。Write/Edit 操作不再需要计划文件门禁——行为规范由技能对话驱动，不由机械阻断保证。
 
-- [ ] 我读了 `openspec/specs/` 吗？（Step 0）
-- [ ] 我和用户做了 brainstorm 吗？（Step 1）
-- [ ] 我运行了 `/opsx:propose` 吗？（Step 2）
-- [ ] 用户批准了 proposal 吗？（Step 3）
-- [ ] **`docs/plans/YYYY-MM-DD-<feature>.md` 存在吗？（Step 4）← HOOK 强制检查**
-
-**如果任何一个答案是 NO，不要写代码。按顺序走完前面的步骤。**
+---
 
 ### 其他规则
 - 执行范围内：当前项目目录下的任何增删查改操作，**直接执行，无需询问**

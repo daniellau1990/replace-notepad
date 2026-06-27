@@ -31,7 +31,7 @@ class FileHandler:
             return f.read()
 
     def write_file(self, path: str, content: str) -> None:
-        with open(path, "w", encoding="utf-8") as f:
+        with open(path, "w", encoding="utf-8", newline='') as f:
             f.write(content)
 
     # --- Recent files ---

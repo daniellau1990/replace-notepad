@@ -76,7 +76,7 @@ class AutoSave:
 
     def _write(self, content, path):
         try:
-            with open(path, "w", encoding="utf-8") as f:
+            with open(path, "w", encoding="utf-8", newline='') as f:
                 f.write(content)
             self.status_callback(f"已保存 {os.path.basename(path)}")
         except OSError as e:
