@@ -1,7 +1,14 @@
 # Version History
 
 > 每个版本可通过 `git checkout <tag>` 回退
-> 当前最新: `git checkout v0.3.18`
+> 当前最新: `git checkout v0.3.19`
+
+## v0.3.19 (2026-06-28)
+
+- **Fix**: 左侧滚动按钮通过 QApplication.sendEvent 向原生按钮位置(x=0/x=bw-46)
+  发送合成鼠标事件，触发 Qt 原生 C++ 滚动逻辑。PyQt6 不暴露 ensureVisible，
+  但原生按钮机制存在于 C++ 层，可通过事件系统间接调用
+- **Fix**: mouseDoubleClickEvent 拦截，防止双击左按钮触发重命名 QLineEdit
 
 ## v0.3.18 (2026-06-28)
 

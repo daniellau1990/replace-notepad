@@ -1,14 +1,19 @@
 import os
-from PyQt6.QtWidgets import QTabWidget, QLineEdit, QTabBar
-from PyQt6.QtCore import Qt, pyqtSignal, QRect, QPoint
-from PyQt6.QtGui import QPainter, QColor, QPolygon
+from PyQt6.QtWidgets import QTabWidget, QLineEdit, QTabBar, QApplication
+from PyQt6.QtCore import Qt, pyqtSignal, QRect, QPoint, QPointF, QEvent
+from PyQt6.QtGui import QPainter, QColor, QPolygon, QMouseEvent
 
 from src.editor import Editor
-from src.logger import log
 
 
 class _ScrollTabBar(QTabBar):
-    """QTabBar with left-side scroll buttons mimicking native right-side ones."""
+    """QTabBar with visible left-side scroll buttons.
+
+    Native QTabBar ALREADY has scroll buttons at both edges, but the
+    left button is only ~2px wide and invisible in Fusion style.
+    We paint visible buttons on the left and relay clicks to the
+    native scroll mechanism via synthetic events.
+    """
 
     BTN_W = 18
 
@@ -31,40 +36,30 @@ class _ScrollTabBar(QTabBar):
     def _btn_rect(self) -> QRect:
         return QRect(0, 0, self.BTN_W * 2, self.height())
 
-    # --- visible-tab detection ---
+    # --- scroll via synthetic events on native button positions ---
 
-    def _first_visible_tab(self) -> int:
-        w = self.width()
-        for i in range(self.count()):
-            r = self.tabRect(i)
-            if r.isValid() and r.right() > 0 and r.left() < w:
-                return i
-        return 0
+    def _send_native_click(self, x: int):
+        """Send a mouse press+release at bar-local x to trigger native scroll."""
+        y = self.height() // 2
+        pos = QPointF(x, y)
+        press = QMouseEvent(QEvent.Type.MouseButtonPress, pos, pos,
+                            Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton,
+                            Qt.KeyboardModifier.NoModifier)
+        release = QMouseEvent(QEvent.Type.MouseButtonRelease, pos, pos,
+                              Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton,
+                              Qt.KeyboardModifier.NoModifier)
+        QApplication.sendEvent(self, press)
+        QApplication.sendEvent(self, release)
 
-    def _last_visible_tab(self) -> int:
-        w = self.width()
-        for i in range(self.count() - 1, -1, -1):
-            r = self.tabRect(i)
-            if r.isValid() and r.left() < w and r.right() > 0:
-                return i
-        return max(0, self.count() - 1)
+    def _scroll_left(self):
+        """Scroll tabs RIGHT to show earlier (hidden-left) tabs."""
+        # Native left-scroll button is at x=0
+        self._send_native_click(0)
 
-    # --- scroll ---
-
-    def _scroll(self, delta: int):
-        n = self.count()
-        if n == 0:
-            return
-        if delta < 0:
-            # Scroll toward earlier tabs: target = one before first visible
-            target = max(0, self._first_visible_tab() - 1)
-        else:
-            # Scroll toward later tabs: target = one after last visible
-            target = min(n - 1, self._last_visible_tab() + 1)
-        try:
-            self.ensureVisible(target)
-        except Exception:
-            log("ERROR", f"ensureVisible({target}) failed n={n} delta={delta}")
+    def _scroll_right(self):
+        """Scroll tabs LEFT to show later (hidden-right) tabs."""
+        # Native right-scroll button is at right edge (~bw-46)
+        self._send_native_click(self.width() - 46)
 
     # --- paint ---
 
@@ -77,21 +72,18 @@ class _ScrollTabBar(QTabBar):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         r = self._btn_rect()
 
-        # Background to cover tab content beneath
         painter.fillRect(r, QColor("#f0f0f0"))
-        # Separator line
         painter.setPen(QColor("#d0d0d0"))
         painter.drawLine(r.topRight().x(), 0, r.topRight().x(), r.height())
 
         painter.setPen(QColor("#555"))
         cy = r.height() // 2
 
-        # Left arrow (◀) — triangle pointing left
+        # Left arrow (◀)
         painter.drawPolygon(QPolygon([
             QPoint(12, cy - 5), QPoint(12, cy + 5), QPoint(6, cy),
         ]))
-
-        # Right arrow (▶) — triangle pointing right
+        # Right arrow (▶)
         painter.drawPolygon(QPolygon([
             QPoint(24, cy - 5), QPoint(24, cy + 5), QPoint(30, cy),
         ]))
@@ -100,16 +92,31 @@ class _ScrollTabBar(QTabBar):
 
     # --- click handling ---
 
+    def _in_left_buttons(self, x: float) -> int:
+        """Return -1=none, 0=left_btn, 1=right_btn."""
+        if not self._tabs_overflow():
+            return -1
+        if x < self.BTN_W:
+            return 0
+        if x < self.BTN_W * 2:
+            return 1
+        return -1
+
     def mousePressEvent(self, event):
-        if self._tabs_overflow():
-            x = event.pos().x()
-            if x < self.BTN_W:
-                self._scroll(-1)
-                return
-            elif x < self.BTN_W * 2:
-                self._scroll(1)
-                return
+        btn = self._in_left_buttons(event.pos().x())
+        if btn == 0:
+            self._scroll_left()
+            return
+        elif btn == 1:
+            self._scroll_right()
+            return
         super().mousePressEvent(event)
+
+    def mouseDoubleClickEvent(self, event):
+        # Consume double-clicks on our buttons to prevent rename box
+        if self._in_left_buttons(event.pos().x()) >= 0:
+            return
+        super().mouseDoubleClickEvent(event)
 
 
 class TabManager(QTabWidget):
