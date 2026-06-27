@@ -1,7 +1,13 @@
 # Version History
 
 > 每个版本可通过 `git checkout <tag>` 回退
-> 当前最新: `git checkout v0.3.16`
+> 当前最新: `git checkout v0.3.17`
+
+## v0.3.17 (2026-06-28)
+
+- **Fix**: 重写 _ScrollTabBar — 左侧滚动按钮使用 QStyle 原生渲染（PE_IndicatorArrowLeft/Right + 鼠标状态追踪）
+- **Fix**: 滚动逻辑修正 — 左滚用 `_first_visible_tab()-1`，右滚用 `_last_visible_tab()+1`
+- 按钮支持 hover/press 状态反馈
 
 ## v0.3.16 (2026-06-28)
 
