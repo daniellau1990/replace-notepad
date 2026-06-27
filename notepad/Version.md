@@ -1,7 +1,12 @@
 # Version History
 
 > 每个版本可通过 `git checkout <tag>` 回退
-> 当前最新: `git checkout v0.3.14`
+> 当前最新: `git checkout v0.3.15`
+
+## v0.3.15 (2026-06-27)
+
+- **Feature**: 标签溢出时左侧显示滚动箭头按钮（自定义 _ScrollTabBar）
+- 通过 `ensureVisible()` 控制滚动，不改变当前选中标签
 
 ## v0.3.14 (2026-06-27)
 

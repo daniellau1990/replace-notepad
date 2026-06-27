@@ -1,8 +1,93 @@
 import os
-from PyQt6.QtWidgets import QTabWidget, QLineEdit
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtWidgets import QTabWidget, QLineEdit, QTabBar, QStyle, QStyleOptionTab
+from PyQt6.QtCore import Qt, pyqtSignal, QRect, QPoint
+from PyQt6.QtGui import QPainter, QColor
 
 from src.editor import Editor
+
+
+class _ScrollTabBar(QTabBar):
+    """QTabBar with left-side scroll buttons (mirrors built-in right-side ones)."""
+
+    BTN_W = 18
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setUsesScrollButtons(True)
+
+    def _tabs_overflow(self) -> bool:
+        if self.count() == 0:
+            return False
+        total = sum(self.tabRect(i).width() for i in range(self.count()))
+        return total > self.width()
+
+    def _left_buttons_rect(self) -> QRect:
+        return QRect(0, 0, self.BTN_W * 2, self.height())
+
+    # --- scroll helpers ---
+
+    def _first_visible_tab(self) -> int:
+        for i in range(self.count()):
+            r = self.tabRect(i)
+            if r.right() > 0:
+                return i
+        return self.count() - 1
+
+    def _last_visible_tab(self) -> int:
+        for i in range(self.count() - 1, -1, -1):
+            r = self.tabRect(i)
+            if r.left() < self.width():
+                return i
+        return 0
+
+    def _scroll(self, delta: int):
+        """Scroll tab view by delta tabs (negative=left, positive=right)."""
+        target = max(0, min(self.count() - 1, self._first_visible_tab() + delta))
+        self.ensureVisible(target)
+
+    # --- paint ---
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        if not self._tabs_overflow():
+            return
+
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        r = self._left_buttons_rect()
+
+        # Background
+        painter.fillRect(r, QColor("#f0f0f0"))
+        # Separator line
+        painter.setPen(QColor("#d0d0d0"))
+        painter.drawLine(r.topRight(), r.bottomRight())
+
+        # Left arrow (scroll toward earlier tabs)
+        painter.setPen(QColor("#555"))
+        cx, cy = self.BTN_W // 2, r.height() // 2
+        painter.drawPolygon(
+            QPoint(cx + 4, cy - 6), QPoint(cx + 4, cy + 6), QPoint(cx - 3, cy)
+        )
+        # Right arrow (scroll toward later tabs)
+        cx += self.BTN_W
+        painter.drawPolygon(
+            QPoint(cx - 4, cy - 6), QPoint(cx - 4, cy + 6), QPoint(cx + 3, cy)
+        )
+
+        painter.end()
+
+    # --- click handling ---
+
+    def mousePressEvent(self, event):
+        if self._tabs_overflow():
+            x = event.pos().x()
+            if x < self.BTN_W:           # left-scroll button
+                self._scroll(-1)
+                return
+            elif x < self.BTN_W * 2:     # right-scroll button
+                self._scroll(1)
+                return
+        super().mousePressEvent(event)
 
 
 class TabManager(QTabWidget):
@@ -12,11 +97,13 @@ class TabManager(QTabWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._tab_bar = _ScrollTabBar(self)
+        self.setTabBar(self._tab_bar)
         self.setTabsClosable(True)
         self.setMovable(True)
         self.setDocumentMode(True)
         self.currentChanged.connect(self._on_tab_changed)
-        self.tabBar().tabBarDoubleClicked.connect(self._on_double_click)
+        self._tab_bar.tabBarDoubleClicked.connect(self._on_double_click)
 
         self._file_paths = {}       # id(editor) -> str | None
         self._dirty_editors = set()  # set of id(editor)
