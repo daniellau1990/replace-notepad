@@ -1,27 +1,20 @@
 import os
-from PyQt6.QtWidgets import QTabWidget, QLineEdit, QTabBar, QStyle, QStyleOptionTab
+from PyQt6.QtWidgets import QTabWidget, QLineEdit, QTabBar
 from PyQt6.QtCore import Qt, pyqtSignal, QRect, QPoint
-from PyQt6.QtGui import QPainter, QColor
+from PyQt6.QtGui import QPainter, QColor, QPolygon
 
 from src.editor import Editor
 from src.logger import log
 
 
 class _ScrollTabBar(QTabBar):
-    """QTabBar with left-side scroll buttons matching native right-side look."""
+    """QTabBar with left-side scroll buttons mimicking native right-side ones."""
 
-    BTN_W = 20
+    BTN_W = 18
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setUsesScrollButtons(True)
-        self.setMouseTracking(True)
-        self._left_hover = False
-        self._right_hover = False
-        self._left_press = False
-        self._right_press = False
-
-    # --- overflow detection ---
 
     def _tabs_overflow(self) -> bool:
         n = self.count()
@@ -35,9 +28,8 @@ class _ScrollTabBar(QTabBar):
                 total += r.width()
         return total > w
 
-    def _btn_rect(self, left_btn: bool) -> QRect:
-        x = 0 if left_btn else self.BTN_W
-        return QRect(x, 0, self.BTN_W, self.height())
+    def _btn_rect(self) -> QRect:
+        return QRect(0, 0, self.BTN_W * 2, self.height())
 
     # --- visible-tab detection ---
 
@@ -64,17 +56,15 @@ class _ScrollTabBar(QTabBar):
         if n == 0:
             return
         if delta < 0:
-            # Scroll left: expose a tab hidden on the left
-            first = self._first_visible_tab()
-            target = max(0, first - 1)
+            # Scroll toward earlier tabs: target = one before first visible
+            target = max(0, self._first_visible_tab() - 1)
         else:
-            # Scroll right: expose a tab hidden on the right
-            last = self._last_visible_tab()
-            target = min(n - 1, last + 1)
+            # Scroll toward later tabs: target = one after last visible
+            target = min(n - 1, self._last_visible_tab() + 1)
         try:
             self.ensureVisible(target)
         except Exception:
-            log("ERROR", f"ensureVisible({target}) failed count={n} delta={delta}")
+            log("ERROR", f"ensureVisible({target}) failed n={n} delta={delta}")
 
     # --- paint ---
 
@@ -84,108 +74,42 @@ class _ScrollTabBar(QTabBar):
             return
 
         painter = QPainter(self)
-        style = self.style()
-        h = self.height()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        r = self._btn_rect()
 
-        # Separator between left buttons and tabs
+        # Background to cover tab content beneath
+        painter.fillRect(r, QColor("#f0f0f0"))
+        # Separator line
         painter.setPen(QColor("#d0d0d0"))
-        painter.drawLine(self.BTN_W * 2, 0, self.BTN_W * 2, h)
+        painter.drawLine(r.topRight().x(), 0, r.topRight().x(), r.height())
 
-        # Draw left-scroll button (◀)
-        self._draw_btn(painter, style, left_btn=True, h=h)
-        # Draw right-scroll button (▶)
-        self._draw_btn(painter, style, left_btn=False, h=h)
+        painter.setPen(QColor("#555"))
+        cy = r.height() // 2
+
+        # Left arrow (◀) — triangle pointing left
+        painter.drawPolygon(QPolygon([
+            QPoint(12, cy - 5), QPoint(12, cy + 5), QPoint(6, cy),
+        ]))
+
+        # Right arrow (▶) — triangle pointing right
+        painter.drawPolygon(QPolygon([
+            QPoint(24, cy - 5), QPoint(24, cy + 5), QPoint(30, cy),
+        ]))
 
         painter.end()
 
-    def _draw_btn(self, painter, style, left_btn: bool, h: int):
-        opt = QStyleOptionTab()
-        opt.initFrom(self)
-        opt.rect = self._btn_rect(left_btn)
-
-        is_press = self._left_press if left_btn else self._right_press
-        is_hover = self._left_hover if left_btn else self._right_hover
-
-        state = QStyle.State.State_Enabled
-        if is_press:
-            state |= QStyle.State.State_Sunken
-        elif is_hover:
-            state |= QStyle.State.State_MouseOver
-        if self.isActiveWindow():
-            state |= QStyle.State.State_Active
-        opt.state = state
-
-        # Button panel (matching native scroller button look)
-        pe_panel = QStyle.PrimitiveElement.PE_PanelButtonTool
-        # Arrow indicator
-        pe_arrow = (QStyle.PrimitiveElement.PE_IndicatorArrowLeft if left_btn
-                    else QStyle.PrimitiveElement.PE_IndicatorArrowRight)
-
-        # Smaller rect for the arrow (center it)
-        arrow_rect = QRect(opt.rect)
-        margin = 4
-        arrow_rect.adjust(margin, margin * 2, -margin, -margin * 2)
-
-        style.drawPrimitive(pe_panel, opt, painter)
-        opt.rect = arrow_rect
-        style.drawPrimitive(pe_arrow, opt, painter)
-
-    # --- mouse tracking ---
-
-    def _btn_at(self, x: int) -> int:
-        """Return -1=none, 0=left_btn, 1=right_btn."""
-        if not self._tabs_overflow():
-            return -1
-        if x < self.BTN_W:
-            return 0
-        if x < self.BTN_W * 2:
-            return 1
-        return -1
+    # --- click handling ---
 
     def mousePressEvent(self, event):
-        btn = self._btn_at(event.pos().x())
-        if btn == 0:
-            self._left_press = True
-            self.update()
-            return
-        elif btn == 1:
-            self._right_press = True
-            self.update()
-            return
-        super().mousePressEvent(event)
-
-    def mouseReleaseEvent(self, event):
-        if self._left_press:
-            self._left_press = False
-            self.update()
-            if self._btn_at(event.pos().x()) == 0:
+        if self._tabs_overflow():
+            x = event.pos().x()
+            if x < self.BTN_W:
                 self._scroll(-1)
-            return
-        if self._right_press:
-            self._right_press = False
-            self.update()
-            if self._btn_at(event.pos().x()) == 1:
+                return
+            elif x < self.BTN_W * 2:
                 self._scroll(1)
-            return
-        super().mouseReleaseEvent(event)
-
-    def mouseMoveEvent(self, event):
-        x = event.pos().x()
-        old_left = self._left_hover
-        old_right = self._right_hover
-        self._left_hover = (self._btn_at(x) == 0)
-        self._right_hover = (self._btn_at(x) == 1)
-        if self._left_hover != old_left or self._right_hover != old_right:
-            self.update()
-        super().mouseMoveEvent(event)
-
-    def leaveEvent(self, event):
-        self._left_hover = False
-        self._right_hover = False
-        self._left_press = False
-        self._right_press = False
-        self.update()
-        super().leaveEvent(event)
+                return
+        super().mousePressEvent(event)
 
 
 class TabManager(QTabWidget):

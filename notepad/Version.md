@@ -1,7 +1,13 @@
 # Version History
 
 > 每个版本可通过 `git checkout <tag>` 回退
-> 当前最新: `git checkout v0.3.17`
+> 当前最新: `git checkout v0.3.18`
+
+## v0.3.18 (2026-06-28)
+
+- **Fix**: 回退到 QPainter 绘制（QPolygon 三角形，已验证可渲染），恢复背景填充遮罩 tab 内容
+- **Fix**: 滚动逻辑修正 — 左滚用 `first_visible-1`，右滚用 `last_visible+1`
+- 三版迭代根因记录见 Version.md 底部
 
 ## v0.3.17 (2026-06-28)
 
