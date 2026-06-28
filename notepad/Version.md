@@ -1,7 +1,15 @@
 # Version History
 
 > 每个版本可通过 `git checkout <tag>` 回退
-> 当前最新: `git checkout v0.3.26`
+> 当前最新: `git checkout v0.3.27`
+
+## v0.3.27 (2026-06-28)
+
+- **Bug Fix Step 2 增加修复方案副作用分析**（v0.3.25 教训——3 行改动引发 Qt 事件冲突）
+- **Step 6 功能测试不可跳过**（"UI 改动强制"→ 改动 ≥1 行即执行）
+- **新增"常见错误模式及预防"**：速度偏见、简单修复幻觉、文字游戏、自欺式自检
+- **零容忍清单**：event/mouse/paint/contextMenu/dragDrop/focus 改动必须功能测试
+- **Lesson learned**: 速度偏见与简单修复幻觉（五问 + 七问链条）
 
 ## v0.3.26 (2026-06-28)
 

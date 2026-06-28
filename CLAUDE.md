@@ -54,7 +54,7 @@ pip freeze > requirements.txt
 | 3 | 制定计划 | `superpowers-skills-writing-plans` | `docs/plans/YYYY-MM-DD-<feature>.md` |
 | 4 | **人工审查** | — | 用户批准计划 |
 | 5 | TDD 实现 | `mattpocock-skills-tdd` + `superpowers-skills-test-driven-development` + `superpowers-skills-subagent-driven-development` | 测试先行，逐任务实现 |
-| 6 | 功能测试 | QApplication 功能测试 + **模拟鼠标点击测试**（UI 改动强制） | 功能/事件链验证通过 |
+| 6 | 功能测试 | QApplication 功能测试 + **模拟鼠标点击测试**（不可跳过） | 功能/事件链验证通过 |
 | 7 | 代码审查 | `mattpocock-skills-review`（见代码审查清单） | 审查通过 |
 | 8 | 回归测试 | `pytest tests/` | 全部绿色，旧功能无退化 |
 | 9 | 归档 + 版本 | `openspec-archive-change` + git commit + 更新 Version.md | 版本锚点，知识库更新 |
@@ -101,7 +101,7 @@ assert hasattr(bar, 'ensureVisible'), "API 不存在，需替换方案"
 | 3 | 制定计划 | `superpowers-skills-writing-plans` | 修复计划 |
 | 4 | **人工审查** | — | 用户批准 |
 | 5 | TDD 修复 | `mattpocock-skills-tdd` + `superpowers-skills-test-driven-development` | 先写复现测试 → 失败 → 修复 → 通过 |
-| 6 | 功能测试 | QApplication 功能测试 + **模拟鼠标点击测试**（UI 改动强制） | 功能验证 + 事件链验证 |
+| 6 | 功能测试 | QApplication 功能测试 + **模拟鼠标点击测试**（不可跳过，改动 ≥1 行即执行） | 功能验证 + 事件链验证 |
 | 7 | 代码审查 | `mattpocock-skills-review`（见代码审查清单） | 审查通过 |
 | 8 | 回归测试 | `pytest tests/` | 全部绿色 |
 | 9 | 归档 + 版本 | git commit + 更新 Version.md | 版本锚点 |
@@ -117,10 +117,24 @@ assert hasattr(bar, 'ensureVisible'), "API 不存在，需替换方案"
 | 2 | `mattpocock-skills-diagnosing-bugs` | Phase 1：建 feedback loop——一个能复现 bug 的自动化命令 |
 | 3 | `my-systematic-debugging` + `superpowers-skills-systematic-debugging` | 反转假设 + 隔离测试 + 十问根因分析 + Iron Law |
 
+**诊断必须包含修复方案副作用分析**（v0.3.26 教训——右键菜单"简单修复"引入新 bug）：
+- 改动会触达哪些 Qt 机制？（event/mouse/paint/contextMenu/dragDrop/focus）
+- 这些机制之间有哪些耦合点？（例：TextSelectableByMouse → 系统右键菜单 → 与自定义菜单冲突）
+- 如果修复方案失败，最可能的副作用是什么？→ 写测试验证这个点
+
 **硬规则**：
 - Step 2 **不可跳过**——根源未知的修复 = 猜測修 bug
-- Step 6（功能测试）**UI 改动强制**——v0.3.15–v0.3.19 教训：pytest 全绿 ≠ 功能正常
-- 功能测试必须包含**模拟鼠标点击**（`QApplication.sendEvent`），不只是 `assert widget.isVisible()`
+- Step 6（功能测试）**不可跳过**——"简单修复"不是跳过测试的理由。改动 ≥1 行就要验证
+- 涉及 event/mouse/paint/contextMenu/dragDrop/focus 的改动 → **零容忍**，必须功能测试
+
+**常见错误模式及预防**（v0.3.26 十四问分析产出）：
+
+| 错误模式 | 表现 | 预防 |
+|---------|------|------|
+| **速度偏见** | pytest 57/57 → "看起来对" → 跳过功能测试 | Step 6 不可跳过，任何改动 ≥1 行必须有功能验证 |
+| **"简单修复"幻觉** | 改动小 → 直觉认为不会出错 | Step 2 副作用分析——小改动也可能触发 Qt 耦合 |
+| **文字游戏** | "UI 改动"范围被自行缩小 | event/mouse/paint/contextMenu/dragDrop/focus 零容忍清单 |
+| **自欺式自检** | 审查清单在脑子里跑，不贴证据 | 每项必须贴命令+输出 |
 
 ### 十问根因分析法（n-why，不限于 10 问）
 
