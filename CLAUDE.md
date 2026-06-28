@@ -52,6 +52,7 @@ pip freeze > requirements.txt
 | 7 | 代码审查 | `mattpocock-skills-review`（见代码审查清单） | 审查通过 |
 | 8 | 回归测试 | `pytest tests/` | 全部绿色，旧功能无退化 |
 | 9 | 归档 + 版本 | `openspec-archive-change` + git commit + 更新 Version.md | 版本锚点，知识库更新 |
+| 10 | **元学习** | 十问分析本次教训 → 规则自检（见"每次 Debug 后必须执行"） | CLAUDE.md 持续进化 |
 
 ---
 
@@ -98,6 +99,7 @@ assert hasattr(bar, 'ensureVisible'), "API 不存在，需替换方案"
 | 7 | 代码审查 | `mattpocock-skills-review`（见代码审查清单） | 审查通过 |
 | 8 | 回归测试 | `pytest tests/` | 全部绿色 |
 | 9 | 归档 + 版本 | git commit + 更新 Version.md | 版本锚点 |
+| 10 | **元学习** | 十问分析本次教训 → 规则自检 | CLAUDE.md 持续进化 |
 
 **🔴 Bug Fix Step 2 — 诊断根因（三 skill 联合调用，不可跳过）**
 
