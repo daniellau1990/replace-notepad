@@ -4,7 +4,9 @@ from PyQt6.Qsci import QsciScintilla
 from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, \
     QStatusBar, QLabel, QWidget, QHBoxLayout
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QAction, QKeySequence, QFont
+from PyQt6.QtGui import QAction, QKeySequence, QFont, QDragEnterEvent, QDropEvent
+
+from src.editor import Editor
 
 from src.tab_manager import TabManager
 from src.autosave import AutoSave, DEFAULT_DIR
@@ -12,7 +14,7 @@ from src.file_handler import FileHandler
 from src.find_replace import FindReplace
 from src.settings import Settings
 
-APP_VERSION = "v0.3.23"
+APP_VERSION = "v0.3.24"
 
 
 class ClickablePathWidget(QWidget):
@@ -559,6 +561,53 @@ class MainWindow(QMainWindow):
         if self._auto_save_and_close(editor):
             self._tab_manager.remove_tab(idx)
             self._update_title()
+
+    # --- Drag & drop open ---
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            for url in event.mimeData().urls():
+                if url.isLocalFile() and not Editor._is_image_file(url.toLocalFile()):
+                    event.acceptProposedAction()
+                    return
+        super().dragEnterEvent(event)
+
+    def dropEvent(self, event):
+        paths = []
+        if event.mimeData().hasUrls():
+            for url in event.mimeData().urls():
+                if url.isLocalFile():
+                    path = url.toLocalFile()
+                    if not Editor._is_image_file(path):
+                        paths.append(path)
+
+        super().dropEvent(event)
+
+        had_tabs = self._tab_manager.count() > 0
+        first_opened = None
+
+        for path in paths:
+            # Duplicate check
+            found = None
+            for eid, editor, p, _ in self._tab_manager.all_editors():
+                if p == path:
+                    found = editor
+                    break
+            if found is not None:
+                self._tab_manager.setCurrentWidget(found)
+                continue
+
+            try:
+                content = self._file_handler.read_file(path)
+                editor = self._new_tab(content, path)
+                self._file_handler.add_recent(path)
+                if first_opened is None:
+                    first_opened = editor
+            except Exception:
+                pass
+
+        if not had_tabs and first_opened is not None:
+            self._tab_manager.setCurrentWidget(first_opened)
 
     # --- Close window ---
 

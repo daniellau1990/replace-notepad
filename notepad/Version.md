@@ -1,7 +1,17 @@
 # Version History
 
 > 每个版本可通过 `git checkout <tag>` 回退
-> 当前最新: `git checkout v0.3.23`
+> 当前最新: `git checkout v0.3.24`
+
+## v0.3.24 (2026-06-28)
+
+- **Feature**: 拖放文件到窗口批量打开（Drag and Drop Open）
+  - MainWindow 新增 dragEnterEvent/dropEvent，接受整个窗口拖放
+  - 文本文件 → 批量打开新标签（复用 file_handler 读写逻辑）
+  - 图片 → 走 Editor 现有逻辑（插入 Markdown 语法）
+  - 重复文件 → 切换到已有标签
+  - 二进制/不可读 → 静默跳过
+  - 当前有标签时所有新文件后台打开；无标签时第一个激活
 
 ## v0.3.23 (2026-06-28)
 
