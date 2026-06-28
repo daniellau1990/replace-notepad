@@ -107,12 +107,48 @@ assert hasattr(bar, 'ensureVisible'), "API 不存在，需替换方案"
 |------|-------|---------|
 | 1 | `Shen_Huang_debugging_skill_auto_research` | Anti-Bulldozer：Observe→Hypothesize→Experiment→Conclude，写入 DEBUG.md，每实验 ≤5 行 |
 | 2 | `mattpocock-skills-diagnosing-bugs` | Phase 1：建 feedback loop——一个能复现 bug 的自动化命令 |
-| 3 | `my-systematic-debugging` + `superpowers-skills-systematic-debugging` | 反转假设 + 隔离测试 + 5-why + Iron Law |
+| 3 | `my-systematic-debugging` + `superpowers-skills-systematic-debugging` | 反转假设 + 隔离测试 + 十问根因分析 + Iron Law |
 
 **硬规则**：
 - Step 2 **不可跳过**——根源未知的修复 = 猜測修 bug
 - Step 6（功能测试）**UI 改动强制**——v0.3.15–v0.3.19 教训：pytest 全绿 ≠ 功能正常
 - 功能测试必须包含**模拟鼠标点击**（`QApplication.sendEvent`），不只是 `assert widget.isVisible()`
+
+### 十问根因分析法（n-why，不限于 10 问）
+
+**原则**：不停追问"为什么"，直到触及**系统性问题**（流程/规则/机制缺陷），
+而非停留在**个人失误**（"我忘了/我看错了"）。
+
+**终止条件**：根因达到以下任一层次即可停止。
+- ✅ 规则缺失（CLAUDE.md 没有覆盖这个场景）
+- ✅ 流程缺陷（某个步骤缺少检查点）
+- ✅ 技能缺陷（缺少特定的 skill 调用）
+- ✅ 类别抽象不足（规则写得太具体，没覆盖同类问题）
+- ❌ 个人失误（"我忘了/看错了"→ 不是根因，继续往下问）
+
+**格式**：
+```
+第一问：为什么 [现象]？
+答：[直接原因]
+
+第二问：为什么 [上一答案]？
+答：[更深原因]
+
+...继续直到触达系统性问题...
+
+第 N 问：为什么 [上一答案]？
+答：[系统性根因]
+→ 对策：[修改 CLAUDE.md / 增加检查点 / 更新规则]
+```
+
+### 每次 Debug 后必须执行
+
+修复提交后，执行以下三步：
+
+1. **十问分析**：追问直到触达系统性根因
+2. **写入 lesson-learned**：`docs/lessons/lesson-learned-<描述>-<日期>.md`
+   - 现象 → 十问链条 → 根因 → 预防对策 → 是否需修改 CLAUDE.md
+3. **规则自检**：如果根因指向 CLAUDE.md 规则缺陷 → **通知用户，用户同意后修改**
 
 ### 代码审查清单
 

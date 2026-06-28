@@ -1,7 +1,13 @@
 # Version History
 
 > 每个版本可通过 `git checkout <tag>` 回退
-> 当前最新: `git checkout v0.3.25`
+> 当前最新: `git checkout v0.3.26`
+
+## v0.3.26 (2026-06-28)
+
+- **方法论升级**: 5-why → 十问根因分析法（n-why，不限次数，以触达系统性根因为准）
+- **新增**: "每次 Debug 后必须执行"——十问分析 → lesson-learned → 规则自检
+- **Lesson learned**: 右键菜单被系统菜单覆盖（十问链条 + 预防对策 + 制度化）
 
 ## v0.3.25 (2026-06-28)
 
