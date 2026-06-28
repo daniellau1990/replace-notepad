@@ -1,7 +1,14 @@
 # Version History
 
 > 每个版本可通过 `git checkout <tag>` 回退
-> 当前最新: `git checkout v0.3.24`
+> 当前最新: `git checkout v0.3.25`
+
+## v0.3.25 (2026-06-28)
+
+- **Fix**: 右键菜单被系统 Copy/Select All 菜单覆盖。根因：`TextSelectableByMouse`
+  在 QLabel 上启用了系统默认右键菜单，覆盖了 `customContextMenuRequested`
+  - eventFilter 新增 `ContextMenu` 事件拦截 → 弹出自定义菜单（全选并复制 + 修改默认保存路径）
+  - 移除 `customContextMenuRequested` 信号连接（由 eventFilter 统一处理）
 
 ## v0.3.24 (2026-06-28)
 

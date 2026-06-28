@@ -14,7 +14,7 @@ from src.file_handler import FileHandler
 from src.find_replace import FindReplace
 from src.settings import Settings
 
-APP_VERSION = "v0.3.24"
+APP_VERSION = "v0.3.25"
 
 
 class ClickablePathWidget(QWidget):
@@ -37,15 +37,18 @@ class ClickablePathWidget(QWidget):
         self._layout.addWidget(self._path)
 
         self._path.installEventFilter(self)
-        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.customContextMenuRequested.connect(self._on_context_menu)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
 
     def eventFilter(self, obj, event):
         from PyQt6.QtCore import QEvent
-        if obj is self._path and event.type() == QEvent.Type.MouseButtonDblClick:
-            if event.button() == Qt.MouseButton.LeftButton:
-                self._change_default_dir()
+        if obj is self._path:
+            if event.type() == QEvent.Type.ContextMenu:
+                self._on_context_menu(event.pos())
                 return True
+            if event.type() == QEvent.Type.MouseButtonDblClick:
+                if event.button() == Qt.MouseButton.LeftButton:
+                    self._change_default_dir()
+                    return True
         return super().eventFilter(obj, event)
 
     def set_path(self, path: str, is_auto_save: bool = True):
