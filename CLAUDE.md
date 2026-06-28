@@ -44,7 +44,7 @@ pip freeze > requirements.txt
 | # | 步骤 | 技能 | 产出 |
 |---|------|------|------|
 | 1 | 需求澄清 | `mattpocock-skills-grilling` | 明确的需求边界和验收标准 |
-| 2 | 领域建模 | `mattpocock-skills-domain-modeling` | 领域术语、模块关系、架构决策 |
+| 2 | 领域建模 + **设计探针** | `mattpocock-skills-domain-modeling` + 探针验证（见下） | 领域术语 + API 存在性 + 集成点验证 |
 | 3 | 制定计划 | `superpowers-skills-writing-plans` | `docs/plans/YYYY-MM-DD-<feature>.md` |
 | 4 | **人工审查** | — | 用户批准计划 |
 | 5 | TDD 实现 | `mattpocock-skills-tdd` + `superpowers-skills-test-driven-development` + `superpowers-skills-subagent-driven-development` | 测试先行，逐任务实现 |
@@ -52,6 +52,36 @@ pip freeze > requirements.txt
 | 7 | 代码审查 | `mattpocock-skills-review`（见代码审查清单） | 审查通过 |
 | 8 | 回归测试 | `pytest tests/` | 全部绿色，旧功能无退化 |
 | 9 | 归档 + 版本 | `openspec-archive-change` + git commit + 更新 Version.md | 版本锚点，知识库更新 |
+
+---
+
+### 🔴 Feature Step 2 — 设计探针（领域建模后的代码验证）
+
+领域建模完成后、制定计划前，对设计中涉及的 API、集成点、边界条件
+写 5-10 行探针脚本。**不等实现阶段才发现 API 不存在。**
+
+| 探针类型 | 验证问题 | v0.3.15–v0.3.19 教训 |
+|---------|---------|---------------------|
+| API 存在性 | 要调的方法真的存在？ | `hasattr(QTabBar, 'ensureVisible')` → False → 发现时已写 200 行 |
+| 集成点兼容 | 两个模块的接口真的匹配？ | 参数类型、返回值格式是否一致 |
+| 边界条件 | 空值/溢出/极端输入？ | tab 数 = 0 或 100 时行为正确？ |
+| 失败预演 | "如果方案失败，最先在哪崩？" | 主动验证那个点，不等崩溃才排查 |
+
+探针脚本格式：
+```python
+# 5 行探针：验证关键 API 在运行时真实存在
+from PyQt6.QtWidgets import QTabBar
+bar = QTabBar()
+for i in range(20): bar.addTab(f'T{i}')
+bar.resize(200, 40)
+assert hasattr(bar, 'ensureVisible'), "API 不存在，需替换方案"
+```
+
+**硬规则**：
+- 设计涉及不熟悉的 API → **必须写探针**
+- 两个模块首次对接 → **必须写集成探针**
+- 探针通过 → 进入 Step 3 制定计划
+- 探针失败 → 修正设计，**不带着错误假设进入编码**
 
 ---
 
