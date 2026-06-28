@@ -223,39 +223,6 @@ For multi-step tasks, state a brief plan:
 
 ---
 
-## 调试方法论
-
-核心原则: **先观测再推断** — 不要先入为主，直接写测试验证。
-
-1. 先观测再推断 — 事实第一，理论第二
-2. 反转假设 — 问什么存活了，而不是什么坏了
-3. 隔离理解 — 最小测试揭示最大真相
-4. 对比学习 — A/B 测试是调试的最佳伙伴
-5. 相信测试，不信文档 — 验证一切
-6. 找反例 — 找"不正常"的行为，往往藏着答案
-7. 记录根因 — 这样不会重蹈覆辙
-
-### 七步框架
-
-| 步骤 | 核心问题 |
-| --- | --- |
-| Step 1: 精确界定问题 | 期望行为 vs 实际行为是什么？ |
-| Step 2: 反转假设 | 什么没坏？什么存活了？为什么？ |
-| Step 3: 隔离测试 | 最小化复现，排除干扰 |
-| Step 4: 对比实验：A vs B | 差异即原因 |
-| Step 5: 验证文档 | 文档描述契约，不等于实现行为 |
-| Step 6: UX 验证 | 用户实际看到什么？ |
-| Step 7: 记录根因 | 记录机制，不只是记录修复 |
-
-### 常见陷阱
-
-| 陷阱 | 表现 | 正确做法 |
-| --- | --- | --- |
-| 过早锁定假设 | 前5分钟形成假设，花好几天证明它对 | 把假设明确写下来，主动找反对证据 |
-| 忽视部分成功 | 修复症状，忽略已经工作的部分 | 研究"为什么这部分有效" |
-| 架构隧道视野 | 架构正确但问题依旧，不停重构 | 停止编码，写隔离测试 |
-| 只测正常路径 | 验证修复有效，不验证是否破坏其他 | 验证修复 + 回归测试 |
-
 ---
 
 ## 日志记录规则
@@ -305,40 +272,13 @@ For multi-step tasks, state a brief plan:
 
 ### 功能测试（强制 — v0.3.20 教训）
 
-**任何涉及 UI 交互的改动（按钮、滚动、事件处理、绘制），必须写 QApplication 功能测试，且必须包含模拟鼠标点击。**
+**任何涉及 UI 交互的改动（按钮、滚动、事件处理、绘制），必须写 QApplication 功能测试。**
+
+硬要求：`QApplication` → `.show()` + `processEvents()` → **模拟鼠标点击**（`sendEvent(QMouseEvent)`，不直接调方法） → `processEvents()` → assert 实际行为变化（tabRect 位移、visible 状态等）。
 
 pytest 单元测试只验证 Python 逻辑，**无法测试 QPainter 绘制、QTabBar 滚动、鼠标事件链**。
 
-**功能测试硬要求**：
-- ✅ 创建 `QApplication`（必须有事件循环）
-- ✅ 控件 `.show()` + `app.processEvents()`（真实渲染）
-- ✅ **模拟鼠标点击**：`QApplication.sendEvent(widget, QMouseEvent(...))`，不是直接调方法
-- ✅ `app.processEvents()` 等待 Qt 处理完事件链
-- ✅ assert 实际行为（tabRect 变化、visible 状态等）
-
-功能测试模板：
-```python
-app = QApplication(sys.argv)           # 必须有 QApplication
-widget = create_widget()               # 创建被测控件
-widget.show(); app.processEvents()     # 渲染
-
-# 模拟用户鼠标点击（不是直接调方法！）
-pos = QPointF(click_x, click_y)
-press = QMouseEvent(QEvent.Type.MouseButtonPress, pos, pos,
-                    Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton,
-                    Qt.KeyboardModifier.NoModifier)
-release = QMouseEvent(QEvent.Type.MouseButtonRelease, pos, pos,
-                      Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton,
-                      Qt.KeyboardModifier.NoModifier)
-QApplication.sendEvent(widget, press)
-QApplication.sendEvent(widget, release)
-app.processEvents()
-
-# 断言实际行为（不只是 isVisible()！）
-assert widget.tabRect(0).x() == expected
-```
-
-**v0.3.15–v0.3.19 六版迭代根因**：每次只跑 pytest（57 个单元测试全过），从未写功能测试验证实际滚动。mattpocock-skills-diagnosing-bugs Phase 1："没有 tight feedback loop 就不准进入 Phase 2。"
+功能测试模板见 `docs/lessons/lesson-learned-左上角tab crash-2026-06-28.md`。
 
 ### 三层测试体系
 
@@ -364,82 +304,6 @@ assert widget.tabRect(0).x() == expected
 - [ ] 检查状态栏提示信息是否准确、及时
 
 ---
-
-## 苏格拉底式五问五答调试法
-
-### 核心原则
-
-**先观测日志事实，再找根因。**
-
-调试三步顺序（必须遵守）：
-1. **先看日志** — 读取 `logs/runtime.log` 和 `logs/test.log`，从日志中提取异常时间点、错误堆栈、失败用例
-2. **再看现场** — 观察 UI 行为、文件状态、系统资源的实际表现
-3. **最后五问** — 基于日志事实和观测事实，连续追问五次，每问一层，直到底层机制暴露
-
-禁止跳过日志直接猜原因。日志是最客观的事实来源。
-
-### 调试入口清单
-
-在开始任何 bug 调查前，必须按顺序检查：
-
-| 顺序 | 检查项 | 命令/路径 |
-|------|--------|-----------|
-| 1 | 运行日志 | `cat logs/runtime.log` |
-| 2 | 测试日志 | `cat logs/test.log` |
-| 3 | git log | `git log --oneline -10` |
-| 4 | 当前版本 | `git tag -l "v*" --sort=-v:refname \| head -1` |
-
-### 五问流程
-
-| 问次 | 问题 | 目的 |
-|------|------|------|
-| 第一问 | 日志里实际记录了什么？（精确描述日志事实） | 建立事实基线 |
-| 第二问 | 什么没坏？（界定问题边界） | 缩小排查范围 |
-| 第三问 | 两边的差异是什么？（A/B 对比） | 隔离关键变量 |
-| 第四问 | 这个差异的底层机制是什么？ | 找到直接原因 |
-| 第五问 | 如果根因在此，能解释所有现象吗？ | 验证根因完整性 |
-
-### 示例
-
-```
-现象: 字体对话框改了大小，编辑器不变
-
-Step 1: 看日志
-$ cat logs/runtime.log
-[2026-05-06 10:23:01] [INFO] App started v0.3.10
-[2026-05-06 10:23:15] [INFO] Font size changed: 11 → 14
-$ cat logs/test.log
-[2026-05-06 09:15:00] total=57 passed=57 failed=0  ← 全部通过！说明不是崩溃级bug
-
-Step 2: 看现场
-- 预览区 QLabel: 字体变为 14pt ✓
-- 编辑器: 字体仍为 11pt ✗
-- 重新打开格式菜单: 显示 14pt（设置存了）
-
-Step 3: 五问
-第一问: 日志和现场显示了什么？
-答: 日志记录字体变更成功，实际预览生效但编辑器未生效
-
-第二问: 什么没坏？
-答: 预览区、设置持久化、滑块 UI 都正常
-
-第三问: 预览 vs 编辑器差异是什么？
-答: 预览用 QLabel.setFont()，编辑器有 QsciLexerMarkdown
-
-第四问: lexer 的机制是什么？
-答: lexer 每个 style 独立存储 font，优先级高于 editor.setFont()
-
-第五问: 能解释全部现象吗？
-答: 能——editor.setFont() 被 lexer 覆盖，预览无 lexer 所以生效
-→ 根因: lexer style 字体未同步更新
-```
-
-### 适用场景
-
-- 任何 bug 调查开始前，**必须先查 `logs/runtime.log` 和 `logs/test.log`**
-- 基于日志事实开始五问，而非基于猜测
-- 五问走不通 → 说明日志不够或观测不够，回第一步补充事实
-- 禁止跳过日志直接猜原因
 
 ---
 

@@ -1,7 +1,16 @@
 # Version History
 
 > 每个版本可通过 `git checkout <tag>` 回退
-> 当前最新: `git checkout v0.3.22`
+> 当前最新: `git checkout v0.3.23`
+
+## v0.3.23 (2026-06-28)
+
+- **精简 CLAUDE.md**（449→312 行，-31%）:
+  - 删除 `## 调试方法论`（30 行）— 与 my-systematic-debugging skill 重复
+  - 删除 `## 苏格拉底式五问五答调试法`（75 行）— 与 3 个 debug skills 重复
+  - 字体对话框案例移至 `docs/lessons/lesson-learned-字体对话框根因分析.md`
+  - 精简功能测试模板（20 行）— 保留规则，模板引用 lesson-learned
+  - Behavioral Guidelines 保持原样
 
 ## v0.3.22 (2026-06-28)
 
