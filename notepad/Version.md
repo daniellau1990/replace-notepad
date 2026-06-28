@@ -1,7 +1,16 @@
 # Version History
 
 > 每个版本可通过 `git checkout <tag>` 回退
-> 当前最新: `git checkout v0.3.20`
+> 当前最新: `git checkout v0.3.21`
+
+## v0.3.21 (2026-06-28)
+
+- **工作流升级**:
+  1. `debug-hypothesis` → `Shen_Huang_debugging_skill_auto_research` 重命名
+  2. Bug Fix Step 2（诊断）三 skill 联合调用，**不等失败，一开始就引入**
+  3. Feature + Bug Fix 测试阶段增加 `superpowers-skills-test-driven-development`
+  4. 功能测试必须包含**模拟鼠标点击测试**（QApplication.sendEvent + QMouseEvent）
+  5. 增加 `superpowers-skills-systematic-debugging`（Iron Law）到诊断组合
 
 ## v0.3.20 (2026-06-28)
 
