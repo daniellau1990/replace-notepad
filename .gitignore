@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+.venv/
+
+# Testing
+.pytest_cache/
+
+# Logs (runtime & test — generated locally)
+logs/
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# PyInstaller
+build/
+dist/
+*.spec
+
+# Personal notes
+PRD/
+版本说明--手工.txt
+notepad/docs/
+工作流变更对比.md
+
+# OS noise
+Thumbs.db
+.DS_Store
+
+# Catch stray logs
+*.log
+
+# Session artifacts (local only)
+session_summary.txt
