@@ -46,3 +46,4 @@ notepad/
 
 - Python 3.9+
 - Windows 10+
+
