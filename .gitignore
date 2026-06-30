@@ -20,6 +20,9 @@ build/
 dist/
 *.spec
 
+# Project rules (local only)
+CLAUDE.md
+
 # Personal notes
 PRD/
 版本说明--手工.txt
